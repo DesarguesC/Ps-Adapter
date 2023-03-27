@@ -79,23 +79,32 @@ class PLMSSampler(object):
                # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
                **kwargs
                ):
+        """
+        two selectable params added to **kwargs:
+                loss_mode -> return every image when sampling
+                use_model -> the embed model: e.g. keypose, openpose, segmentation, sketch
+        """
+
         # print('*'*20,x_T)
         # exit(0)
+        loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
+        # use_model = kwargs['use_model'] if 'use_model' in kwargs else None
+
         if conditioning is not None:
             if isinstance(conditioning, dict):
                 cbs = conditioning[list(conditioning.keys())[0]].shape[0]
                 if cbs != batch_size:
-                    print(f"Warning: Got {cbs} conditionings but batch-size is {batch_size}")
+                    print(f"Warning: Got {cbs} conditions but batch-size is {batch_size}")
             else:
                 if conditioning.shape[0] != batch_size:
-                    print(f"Warning: Got {conditioning.shape[0]} conditionings but batch-size is {batch_size}")
+                    print(f"Warning: Got {conditioning.shape[0]} conditions but batch-size is {batch_size}")
 
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
         C, H, W = shape
         size = (batch_size, C, H, W)
         print(f'Data shape for PLMS sampling is {size}')
 
-        samples, intermediates = self.plms_sampling(conditioning, size,
+        output = self.plms_sampling(conditioning, size,
                                                     callback=callback,
                                                     img_callback=img_callback,
                                                     quantize_denoised=quantize_x0,
@@ -110,9 +119,28 @@ class PLMSSampler(object):
                                                     unconditional_guidance_scale=unconditional_guidance_scale,
                                                     unconditional_conditioning=unconditional_conditioning,
                                                     features_adapter=features_adapter,
-                                                    cond_tau=cond_tau
+                                                    cond_tau=cond_tau,
+                                                    is_train=loss_mode,
+                                                    # model=use_model,
+                                                    use_original_steps=False
                                                     )
-        return samples, intermediates
+
+
+        if loss_mode:
+            samples, intermediates = output
+        else:
+            samples, intermediates, samples_list = output
+
+        use_original_steps = kwargs['use_original_steps'] if 'use_original_steps' in kwargs else False
+        alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
+        alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
+        sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
+        sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
+
+        ratios = {'alphas': alphas, 'alphas_prev': alphas_prev, 'sqrt_one_minus_alphas': sqrt_one_minus_alphas, 'sigmas': sigmas}
+        # to calculate the expectation
+
+        return samples, intermediates if not loss_mode else samples, intermediates, ratios, samples_list
 
     @torch.no_grad()
     def plms_sampling(self, cond, shape,
@@ -121,7 +149,12 @@ class PLMSSampler(object):
                       mask=None, x0=None, img_callback=None, log_every_t=100,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None, features_adapter=None,
-                      cond_tau=0.4):
+                      cond_tau=0.4, **kwargs):
+
+        is_train = kwargs['is_train'] if 'is_train' in kwargs else False
+        model = kwargs['model'] if 'model' in kwargs else None
+        assert is_train and model is not None or not is_train and model is None, 'Fatal: Invalid inputs of loss_mode and use_model.'
+
         device = self.model.betas.device
         b = shape[0]
         if x_T is None:
@@ -141,6 +174,8 @@ class PLMSSampler(object):
 
         iterator = tqdm(time_range, desc='PLMS Sampler', total=total_steps)
         old_eps = []
+        if is_train:
+            img_list = []
 
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
@@ -163,7 +198,10 @@ class PLMSSampler(object):
                                           (1 - cond_tau) * total_steps) else features_adapter)
 
             img, pred_x0, e_t = outs
+            # pred_x0 ?
             old_eps.append(e_t)
+            if is_train:
+                img_list.append(img)
             if len(old_eps) >= 4:
                 old_eps.pop(0)
             if callback: callback(i)
@@ -173,7 +211,7 @@ class PLMSSampler(object):
                 intermediates['x_inter'].append(img)
                 intermediates['pred_x0'].append(pred_x0)
 
-        return img, intermediates
+        return img, intermediates if not is_train else img, intermediates, img_list
 
     @torch.no_grad()
     def p_sample_plms(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
@@ -222,7 +260,7 @@ class PLMSSampler(object):
             x_prev = a_prev.sqrt() * pred_x0 + dir_xt + noise
             return x_prev, pred_x0
 
-        e_t = get_model_output(x, t)
+        e_t = get_model_output(x, t)    # predicted noise
         if len(old_eps) == 0:
             # Pseudo Improved Euler (2nd order)
             x_prev, pred_x0 = get_x_prev_and_pred_x0(e_t, index)

@@ -1,0 +1,10 @@
+为了产生多视角，我要么给定一个角度信息，即一个数值，这可能需要我使用classifier-free-guidance的方法，我觉得数学上的推导是行不通的，因为diffusion模型本身没有体现位置信息的参数
+
+Adatpter角度
+从数据集构建的角度考虑，我考虑他训练的adapter有没有prompt2prompt的稳定性质（应该是没有的，那我只需要模仿prompt2prompt的方法调整adapter中的权重，因为adapter中也是U-net，所以调整可能是类似的）。
+
+需要验证：adapter是否提供稳定的guidance -> 我使用同样的prompt(或者在prompt上加一个角度信息，只有这一项会变化)，然后给出不同视角的adapter输入（尝试不同模式）
+
+
+Prompt2Prompt角度
+给定prompt增加一个角度相关degree-scale

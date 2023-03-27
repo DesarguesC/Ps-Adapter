@@ -34,6 +34,8 @@ class AttentionPool2d(nn.Module):
     Adapted from CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py
     """
 
+    # use attention on ConvPool
+
     def __init__(
         self,
         spacial_dim: int,
@@ -393,8 +395,12 @@ class QKVAttention(nn.Module):
         """
         bs, width, length = qkv.shape
         assert width % (3 * self.n_heads) == 0
+        # ensure the success of trisection
+
         ch = width // (3 * self.n_heads)
         q, k, v = qkv.chunk(3, dim=1)
+        # divide tensor to make a trisection at dim=1
+
         scale = 1 / math.sqrt(math.sqrt(ch))
         weight = th.einsum(
             "bct,bcs->bts",

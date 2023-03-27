@@ -42,6 +42,7 @@ def disabled_train(self, mode=True):
 def uniform_on_device(r1, r2, shape, device):
     return (r1 - r2) * torch.rand(*shape, device=device) + r2
 
+# DDPM包括后面的
 
 class DDPM(pl.LightningModule):
     # classic DDPM with Gaussian diffusion, in image space
@@ -414,6 +415,8 @@ class DDPM(pl.LightningModule):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         return self.p_losses(x, t, *args, **kwargs)
 
+    # 这两个都是训练用的
+
     def get_input(self, batch, k):
         x = batch[k]
         # if len(x.shape) == 3:
@@ -511,6 +514,8 @@ class DDPM(pl.LightningModule):
 
 class LatentDiffusion(DDPM):
     """main class"""
+
+    # 训练时使用的类
 
     def __init__(self,
                  first_stage_config,
@@ -804,22 +809,6 @@ class LatentDiffusion(DDPM):
         x, c = self.get_input(batch, self.first_stage_key)
         loss = self(x, c, **kwargs)
         return loss
-
-    def get_time_with_schedule(self, scheduler, bs):
-        if scheduler == 'linear':
-            t = torch.randint(0, self.num_timesteps, (bs,), device=self.device).long()
-        elif scheduler == 'cosine':
-            t = torch.rand((bs, ), device=self.device)
-            t = torch.cos(torch.pi / 2. * t) * self.num_timesteps
-            t = t.long()
-        elif scheduler == 'cubic':
-            t = torch.rand((bs,), device=self.device)
-            t = (1 - t ** 3) * self.num_timesteps
-            t = t.long()
-        else:
-            raise NotImplementedError
-        t = torch.clamp(t, min=0, max=self.num_timesteps-1)
-        return t
 
     def forward(self, x, c, *args, **kwargs):
         if 't' not in kwargs:

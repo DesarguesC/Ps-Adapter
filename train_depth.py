@@ -197,10 +197,12 @@ def main():
         model_ad,
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
+    # Adapter: .train()
     model = torch.nn.parallel.DistributedDataParallel(
         model,
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
+    # class LatentDiffusion: .eval()
 
     # optimizer
     params = list(model_ad.parameters())
@@ -244,8 +246,10 @@ def main():
         for _, data in enumerate(train_dataloader):
             current_iter += 1
             with torch.no_grad():
-                c = model.module.get_learned_conditioning(data['sentence'])
+                c = model.module.get_learned_conditioning(data['sentence'])         # model: class LatentDiffusion(DDPM)
                 z = model.module.encode_first_stage((data['im'] * 2 - 1.).to(device))
+                # data['im']: Tensor(batch_size, channels, height, width)
+                #   [0,1] -> [-1,1]
                 z = model.module.get_first_stage_encoding(z)
 
             optimizer.zero_grad()

@@ -30,7 +30,8 @@ def main():
     os.makedirs(opt.outdir, exist_ok=True)
     if opt.resize_short_edge is None:
         print(f"you don't specify the resize_shot_edge, so the maximum resolution is set to {opt.max_resolution}")
-    opt.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    opt.device = torch.device("cuda") if torch.cuda.is_available() else torch.device\
+        ("cpu")
 
     # support two test mode: single image test, and batch test (through a txt file)
     if opt.prompt.endswith('.txt'):
@@ -50,7 +51,19 @@ def main():
 
     # prepare models
     sd_model, sampler = get_sd_models(opt)
+    # take the model and the sampler which has loaded the weights
+
     adapter = get_adapters(opt, getattr(ExtraCondition, which_cond))
+
+    """
+    adapter:
+        a dictionary
+        keys: 'model', 'cond_weight'
+        model: adapter models with weights loaded
+        cond_weights: a mid value to visit the path of the params
+    """
+
+
     cond_model = None
     if opt.cond_inp_type == 'image':
         cond_model = get_cond_model(opt, getattr(ExtraCondition, which_cond))
@@ -62,13 +75,16 @@ def main():
             sd_model.ema_scope(), \
             autocast('cuda'):
         for test_idx, (cond_path, prompt) in enumerate(zip(image_paths, prompts)):
+
             seed_everything(opt.seed)
             for v_idx in range(opt.n_samples):
                 # seed_everything(opt.seed+v_idx+test_idx)
                 cond = process_cond_module(opt, cond_path, opt.cond_inp_type, cond_model)
+                # cond: torch.tensor
 
                 base_count = len(os.listdir(opt.outdir)) // 2
                 cv2.imwrite(os.path.join(opt.outdir, f'{base_count:05}_{which_cond}.png'), tensor2img(cond))
+                # write: keypose.png
 
                 adapter_features, append_to_context = get_adapter_feature(cond, adapter)
                 opt.prompt = prompt

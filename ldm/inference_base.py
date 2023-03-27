@@ -7,6 +7,7 @@ from ldm.models.diffusion.plms import PLMSSampler
 from ldm.modules.encoders.adapter import Adapter, StyleAdapter, Adapter_light
 from ldm.modules.extra_condition.api import ExtraCondition
 from ldm.util import fix_cond_shapes, load_model_from_config, read_state_dict
+import mmpose
 
 DEFAULT_NEGATIVE_PROMPT = 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, ' \
                           'fewer digits, cropped, worst quality, low quality'
@@ -135,16 +136,7 @@ def get_base_argument_parser() -> argparse.ArgumentParser:
         type=float,
         default=1.0,
         help='timestamp parameter that determines until which step the adapter is applied, '
-        'similar as Prompt-to-Prompt tau',
-    )
-
-    parser.add_argument(
-        '--style_cond_tau',
-        type=float,
-        default=1.0,
-        help='timestamp parameter that determines until which step the adapter is applied, '
-             'similar as Prompt-to-Prompt tau',
-    )
+        'similar as Prompt-to-Prompt tau')
 
     parser.add_argument(
         '--cond_weight',
@@ -249,18 +241,11 @@ def get_adapters(opt, cond_type: ExtraCondition):
             ksize=1,
             sk=True,
             use_conv=False).to(opt.device)
+
     ckpt_path = getattr(opt, f'{cond_type.name}_adapter_ckpt', None)
     if ckpt_path is None:
         ckpt_path = getattr(opt, 'adapter_ckpt')
-    state_dict = read_state_dict(ckpt_path)
-    new_state_dict = {}
-    for k, v in state_dict.items():
-        if k.startswith('adapter.'):
-            new_state_dict[k[len('adapter.'):]] = v
-        else:
-            new_state_dict[k] = v
-
-    adapter['model'].load_state_dict(new_state_dict)
+    adapter['model'].load_state_dict(torch.load(ckpt_path))
 
     return adapter
 
@@ -291,10 +276,50 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
         features_adapter=adapter_features,
         append_to_context=append_to_context,
         cond_tau=opt.cond_tau,
-        style_cond_tau=opt.style_cond_tau,
     )
 
     x_samples = model.decode_first_stage(samples_latents)
     x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
 
     return x_samples
+
+
+def train_inference(opt, model, sampler, adapter_features, cond_model, append_to_context=None):
+    # # openpose
+    # from ldm.modules.extra_condition.openpose.api import OpenposeInference
+    # embed_model = OpenposeInference().to(opt.device)
+
+    # get text embedding
+    c = model.get_learned_conditioning([opt.prompt])
+    if opt.scale != 1.0:
+        uc = model.get_learned_conditioning([opt.neg_prompt])
+    else:
+        uc = None
+    c, uc = fix_cond_shapes(model, c, uc)
+
+    if not hasattr(opt, 'H'):
+        opt.H = 512
+        opt.W = 512
+    shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+
+    # PLMSSampler
+    *_, ratios, samples = sampler.sample(
+        S=opt.steps,
+        conditioning=c,
+        batch_size=1,
+        shape=shape,
+        verbose=False,
+        unconditional_guidance_scale=opt.scale,
+        unconditional_conditioning=uc,
+        x_T=None,
+        features_adapter=adapter_features,
+        append_to_context=append_to_context,
+        cond_tau=opt.cond_tau,
+        loss_mode=True,  # need to be trained
+    )
+    assert len(ratios) == len(samples), 'Fatal: Something went wrong in plms'
+    for i in range(len(samples)):
+        samples[i] = cond_model(model.decode_first_stage(torch.clamp((samples[i] + 1.0) / 2.0, min=0.0, max=1.0)))
+
+    # seems no need to return an extra ratios matrix
+    return samples, ratios

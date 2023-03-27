@@ -41,7 +41,6 @@ global_opt.sampler = 'ddim'
 global_opt.cond_weight = 1.0
 global_opt.C = 4
 global_opt.f = 8
-global_opt.style_cond_tau = 0.5
 
 # stable-diffusion model
 sd_model, sampler = get_sd_models(global_opt)

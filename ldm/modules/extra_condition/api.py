@@ -108,10 +108,12 @@ def get_cond_seg(opt, cond_image, cond_inp_type='image', cond_model=None):
 def get_cond_keypose(opt, cond_image, cond_inp_type='image', cond_model=None):
     if isinstance(cond_image, str):
         pose = cv2.imread(cond_image)
+        # BGR encoder
     else:
         pose = cv2.cvtColor(cond_image, cv2.COLOR_RGB2BGR)
     pose = resize_numpy_image(pose, max_resolution=opt.max_resolution, resize_short_edge=opt.resize_short_edge)
     opt.H, opt.W = pose.shape[:2]
+    # type(pose) = np.ndarray
     if cond_inp_type == 'keypose':
         pose = img2tensor(pose).unsqueeze(0) / 255.
         pose = pose.to(opt.device)
@@ -242,11 +244,15 @@ def get_cond_openpose(opt, cond_image, cond_inp_type='image', cond_model=None):
 
     else:
         raise NotImplementedError
+    print(type(openpose_keypose))
+    print(openpose_keypose.shape)
+    # 1 * 3 * 768 * resolution
 
     return openpose_keypose
 
 
 def get_adapter_feature(inputs, adapters):
+    # input: condition
     ret_feat_map = None
     ret_feat_seq = None
     if not isinstance(inputs, list):
@@ -262,8 +268,8 @@ def get_adapter_feature(inputs, adapters):
                 ret_feat_map = list(map(lambda x, y: x + y * adapter['cond_weight'], ret_feat_map, cur_feature))
         else:
             if ret_feat_seq is None:
-                ret_feat_seq = cur_feature * adapter['cond_weight']
+                ret_feat_seq = cur_feature
             else:
-                ret_feat_seq = torch.cat([ret_feat_seq, cur_feature * adapter['cond_weight']], dim=1)
+                ret_feat_seq = torch.cat([ret_feat_seq, cur_feature], dim=1)
 
     return ret_feat_map, ret_feat_seq
