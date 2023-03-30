@@ -18,6 +18,9 @@ version.py
 *.zip
 *.npy
 *.mat
+*.json
+*.webp
+
 
 # template
 
