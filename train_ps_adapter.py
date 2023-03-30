@@ -271,7 +271,7 @@ def main():
                 c = model.module.get_learned_conditioning(data['prompt'])
                 A_0 = model_reflect('img_1')
                 B_0 = model_reflect('img_2')
-                const_B = get_cond_openpose(B_0)
+                const_B = get_cond_openpose(B_0)        # 实际上不需要图片只需要openpose
                 features_A, context_A = primary_adapter(data['keypose_1'].to(device))
 
                 # already went through 'img2tensor'
