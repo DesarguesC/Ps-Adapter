@@ -1,6 +1,6 @@
 # ignored folders
 tmp/*
-# /Datasets/*
+/Datasets/*
 
 *.DS_Store
 .idea
@@ -20,6 +20,8 @@ version.py
 *.mat
 *.json
 *.webp
+
+*.ipynb
 
 
 # template
