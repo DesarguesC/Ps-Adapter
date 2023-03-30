@@ -27,7 +27,7 @@ def get_files(path):
                 file_list.append(file_path)
     return file_list
 
-path = "/root/Ps-Adapter/Datasets"  # original images storage path
+path = "/root/Ps-Adapter/Datasets/sets"  # original images storage path
 file_list = get_files(path)
 
 from shutil import move as mv
