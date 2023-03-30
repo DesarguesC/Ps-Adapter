@@ -1,13 +1,13 @@
 import os
-cnt = 0
-PATH = '/root/Ps-Adapter/Data/'     #target path 
+
+PATH = '/root/Ps-Adapter/Datasets/Data'
 
 def get_bit(num):
-    cnt = 0
+    u = 0
     while num!=0:
-        cnt += 1
+        u += 1
         num = num // 10
-    return cnt
+    return u
 
 def get_name(num):
     t = get_bit(num)
@@ -15,7 +15,7 @@ def get_name(num):
     return ('0'*(7-t)+str(num)+".png")
 
 def ends(f: str):
-    return f.endswith('.jpg') or f.endswith('.jpeg') or f.endswith('png')
+    return True if f.endswith('jpg') or f.endswith('jpeg') or f.endswith('png') else False
         
 
 def get_files(path):
@@ -25,19 +25,30 @@ def get_files(path):
             file_path = os.path.join(root, file)
             if ends(file_path.lower()):
                 file_list.append(file_path)
+    # print(file_list)
     return file_list
 
-path = "/root/Ps-Adapter/Datasets/sets"  # original images storage path
+
+path = "/root/Ps-Adapter/Datasets/sets"  # 替换成目标文件夹的路径
 file_list = get_files(path)
+
+cnt = 0
 
 from shutil import move as mv
 from os import rename as rn
 
+if not os.path.exists(PATH):
+    os.mkdir(PATH)
+
+    
 for file_path in file_list:
     root_list = file_path.split('/')
     root_list[-1] = get_name(cnt)
     cnt += 1
     new_name = '/'.join(root_list)
-    rn(new_name, file_path)
+    # print(file_path, ' -> ', new_name)
+    # print(new_name)
+    rn(file_path, new_name)
     mv(new_name, PATH)
-
+    if cnt % 10000 == 1:
+        print("Still Running at: cnt = ", cnt)
