@@ -1,6 +1,6 @@
 # ignored folders
 tmp/*
-Datasets/*
+/Datasets/*
 
 *.DS_Store
 .idea
