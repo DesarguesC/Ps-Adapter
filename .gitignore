@@ -1,6 +1,6 @@
 # ignored folders
 tmp/*
-/Datasets/*
+# /Datasets/*
 
 *.DS_Store
 .idea
@@ -9,13 +9,15 @@ tmp/*
 version.py
 
 # ignored files with suffix
-# *.html
-# *.png
-# *.jpeg
-# *.jpg
-# *.gif
-# *.pth
-# *.zip
+*.html
+*.png
+*.jpeg
+*.jpg
+*.gif
+*.pth
+*.zip
+*.npy
+*.mat
 
 # template
 
