@@ -49,7 +49,7 @@ def parsr_args():
     parser.add_argument(
         "--resolution",
         type=int,
-        default=512,
+        default=512*512,
         help='for resize'
     )
     opt = parser.parse_args()
@@ -81,8 +81,11 @@ def caption_step(opt):
     feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
     tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
 
+    listdir = os.listdir(opt.image)
+    print('caption object number: ', len(listdir))
     print('captioning...')
-    for image in os.listdir(opt.image):
+    for image in listdir:
+        print("captionning: ", image)
         img = Image.open('{0}/{1}'.format(opt.image, image))
         if not img.mode == 'RGB':
             img = img.convert(mode='RGB')
@@ -106,21 +109,28 @@ def keypose_step(opt):
             c += 2
             num = num // 10
         return c
-    name = lambda x: '0'*(7-x) + str(get_bit(x)) + '.png'
+    name = lambda x: '0'*(7-get_bit(x)) + str(x) + '.png'
     pose_model = OpenposeInference().to(device)
     image_paths = opt.image
+    output = opt.outdir_keypose
 
+    if not os.path.exists(output):
+        os.mkdir(output)
     cnt = 0
-    for image in os.listdir(image_paths):
-        img = cv2.imread('{0}/{1}'.format(opt.image, image))
+
+    listdir = os.listdir(image_paths)
+    print("number of keyposes to be estimated: ", len(listdir))
+    print("getting keypose canvas...")
+    for image in listdir:
+        img = cv2.imread('{0}/{1}'.format(image_paths, image))
+        print('dealing with: {0}...'.format(image))
+        # print(img.shape, opt.resolution)
         openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
-        # openpose_keypose.shape[:2]
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
-        openpose_keypose = img2tensor(openpose_keypose).unsqueeze(0)
-        openpose_keypose = openpose_keypose.to('cpu')
-        rename = name(cnt)
-        cv2.imwrite(openpose_keypose, '{0}/{1}'.format(opt.outdir_keypose, rename))
+            rename = name(cnt)
+            cv2.imwrite('{0}/{1}'.format(opt.outdir_keypose, rename), openpose_keypose)
+        cnt += 1
     return
 
 def main():
