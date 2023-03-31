@@ -1,0 +1,38 @@
+name: Ps-Adapter
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.8.5
+  - pip=20.3
+  - cudatoolkit=11.3
+  - pytorch=1.11.0
+  - torchvision=0.12.0
+  - numpy=1.19.2
+  - pip:
+    - transformers==4.19.2
+    - basicsr==1.4.2
+    - diffusers==0.11.1
+    - opencv-python
+    - invisible-watermark
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.2
+    - pytorch-lightning==1.5.9
+    - omegaconf==2.3.0
+    - test-tube>=0.7.5
+    - imageio
+    - imageio-ffmpeg
+    - einops==0.6.0
+    - torch-fidelity==0.3.0
+    - torchmetrics==0.6.0
+    - kornia==0.6.8
+    - webdataset
+    - safetensors
+    - timm
+    - pudb
+    - -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+    - -e git+https://github.com/openai/CLIP.git@main#egg=clip
+    - openai
+    - gradio
+    - seaborn
+    - git+https://github.com/crowsonkb/k-diffusion.git
