@@ -30,6 +30,7 @@ version.py
 *.safetensors
 *.bin
 
+*.csv
 
 # template
 
