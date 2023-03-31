@@ -1,6 +1,9 @@
 # ignored folders
 tmp/*
 # /Datasets/*
+Datasets/vit-gpt2-image-captioning/*
+
+
 
 *.DS_Store
 .idea
@@ -18,10 +21,14 @@ version.py
 *.zip
 *.npy
 *.mat
-*.json
+# *.json
 *.webp
 
 *.ipynb
+
+*.pth
+*.safetensors
+*.bin
 
 
 # template
