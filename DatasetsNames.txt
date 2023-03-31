@@ -1,4 +1,5 @@
-IEEE VIP CUP 2021 Dataset
 MPII-Human Pose Estimation (Heat Maps)
 Cricket Shots Dataset
 Yoga Posture Dataset
+
+ImageCpation: from https://huggingface.co/nlpconnect/vit-gpt2-image-captioning
