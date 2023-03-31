@@ -1,7 +1,7 @@
 # ignored folders
 tmp/*
 # /Datasets/*
-Datasets/vit-gpt2-image-captioning/*
+# Datasets/vit-gpt2-image-captioning/*
 
 
 
