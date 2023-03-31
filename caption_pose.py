@@ -53,7 +53,7 @@ def parsr_args():
         help='for resize'
     )
 
-def caption_step(opt):
+def caption_step(opt, **gen_kargs):
     # opt.image should be a folder path of images
 
 
@@ -127,5 +127,5 @@ max_length = opt.max_length
 num_beams = opt.num_beams
 gen_kwargs = {"max_length": max_length, "num_beams": num_beams}
 
-caption_step(opt)
+caption_step(opt, gen_kwargs)
 keypose_step(opt)
