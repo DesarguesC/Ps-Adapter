@@ -38,7 +38,20 @@ to get captions and kepose images. Here, "max_length" and "num_beams" are parame
 
 After these, cpaions will be written into "captions.csv" under folder "./Datasets/Captions/" and images will be gathered under folder "./Datasets/Data". 
 
+## Train
 
+Before training, set environment variables as follow
+```bat
+export RANK=0
+export WORLD_SIZE=2     # the number of the thread to be called
+export MASTER_ADDR=localhost
+export MASTER_PORT=5678
+```
+
+try to train
+```bat
+python train_ps_adapter.py --local_rank=0 --gpus 0 --num_workers 2      # with single gpu
+```
 
 
 

@@ -85,7 +85,7 @@ def parsr_args():
     parser.add_argument(
         "--sd_ckpt",
         type=str,
-        default="models/sd-v1-4.ckpt",
+        default="models/v1-5-pruned.ckpt",
         help="path to checkpoint of sd model",
     )
     parser.add_argument(
