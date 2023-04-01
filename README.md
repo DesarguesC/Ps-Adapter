@@ -40,7 +40,7 @@ After these, cpaions will be written into "captions.csv" under folder "./Dataset
 
 ## Train
 
-Before training, set environment as follow
+Before training, set environment variables as follow
 ```bat
 export RANK=0
 export WORLD_SIZE=2     # the number of the thread to be called
