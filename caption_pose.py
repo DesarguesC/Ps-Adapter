@@ -67,12 +67,13 @@ def caption_step(opt):
     # integrate images
     # print(opt.length)
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
-    output = '{0}/{1}'.format(opt.outdir_captions, 'captions.csv')
+    csv_output = '{0}={1}/{2}'.format(opt.outdir_captions, opt.max_length, 'captions.csv')
     # print(output)
-    os.remove(output)
+    if os.path.exists(csv_output):
+        os.remove(csv_output)
     if not os.path.exists(opt.outdir_captions):
         os.mkdir(opt.outdir_captions)
-    file = open(output, "w", newline="")
+    file = open(csv_output, "w", newline="")
     writer = csv.writer(file)
     writer.writerow(['CAPTIONS'])
 
@@ -81,11 +82,26 @@ def caption_step(opt):
     feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
     tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
 
+    def get_bit(num: int) -> int:
+        c = 0
+        while not num == 0:
+            c += 2
+            num = num // 10
+        return c
+    name = lambda x: '0'*(7-get_bit(x)) + str(x) + '.png'
+    pose_model = OpenposeInference().to(device)
+    image_paths = opt.image
+    keypose_output = opt.outdir_keypose
+
+    if not os.path.exists(keypose_output):
+        os.mkdir(keypose_output)
+    cnt = 0
+
     listdir = os.listdir(opt.image)
-    print('caption object number: ', len(listdir))
-    print('captioning...')
+    print('caption max number: ', opt.max_length)
+    print('Dealing...')
     for image in listdir:
-        print("captionning: ", image)
+        print("captionning and estimating: ", image)
         img = Image.open('{0}/{1}'.format(opt.image, image))
         if not img.mode == 'RGB':
             img = img.convert(mode='RGB')
@@ -96,6 +112,16 @@ def caption_step(opt):
             output_ids = caption_model.generate(pixel_values, **gen_kwargs)
             preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         writer.writerow(preds)
+
+        img = cv2.imread('{0}/{1}'.format(image_paths, image))
+        # print('dealing with: {0}...'.format(image))
+        # print(img.shape, opt.resolution)
+        openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
+        with torch.autocast('cuda', dtype=torch.float32):
+            openpose_keypose = pose_model(openpose_keypose)
+            rename = name(cnt)
+            cv2.imwrite('{0}/{1}'.format(opt.outdir_keypose, rename), openpose_keypose)
+        cnt += 1
 
     file.close()
     print("Images captioning done.")
@@ -112,10 +138,10 @@ def keypose_step(opt):
     name = lambda x: '0'*(7-get_bit(x)) + str(x) + '.png'
     pose_model = OpenposeInference().to(device)
     image_paths = opt.image
-    output = opt.outdir_keypose
+    keypose_output = opt.outdir_keypose
 
-    if not os.path.exists(output):
-        os.mkdir(output)
+    if not os.path.exists(keypose_output):
+        os.mkdir(keypose_output)
     cnt = 0
 
     listdir = os.listdir(image_paths)
@@ -135,9 +161,8 @@ def keypose_step(opt):
 
 def main():
     opt = parsr_args()
-
     caption_step(opt)
-    keypose_step(opt)
+    # keypose_step(opt)
 
 
 if __name__ == "__main__":
