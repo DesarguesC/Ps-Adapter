@@ -19,8 +19,8 @@ def parsr_args():
     parser.add_argument(
         "--length",
         type=int,
-        default=8,
-        help='the max length of the word generated'
+        default=None,
+        help='the max length of the word generated: greater than 8 (re-caption)'
     )
     parser.add_argument(
         "--beams",
@@ -69,7 +69,7 @@ def caption_step(opt):
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
     output = '{0}/{1}'.format(opt.outdir_captions, 'captions.csv')
     # print(output)
-    # os.remove(output)
+    os.remove(output)
     if not os.path.exists(opt.outdir_captions):
         os.mkdir(opt.outdir_captions)
     file = open(output, "w", newline="")
@@ -101,44 +101,9 @@ def caption_step(opt):
     print("Images captioning done.")
     return
 
-def keypose_step(opt):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    def get_bit(num: int) -> int:
-        c = 0
-        while not num == 0:
-            c += 2
-            num = num // 10
-        return c
-    name = lambda x: '0'*(7-get_bit(x)) + str(x) + '.png'
-    pose_model = OpenposeInference().to(device)
-    image_paths = opt.image
-    output = opt.outdir_keypose
-
-    if not os.path.exists(output):
-        os.mkdir(output)
-    cnt = 0
-
-    listdir = os.listdir(image_paths)
-    print("number of keyposes to be estimated: ", len(listdir))
-    print("getting keypose canvas...")
-    for image in listdir:
-        img = cv2.imread('{0}/{1}'.format(image_paths, image))
-        print('dealing with: {0}...'.format(image))
-        # print(img.shape, opt.resolution)
-        openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
-        with torch.autocast('cuda', dtype=torch.float32):
-            openpose_keypose = pose_model(openpose_keypose)
-            rename = name(cnt)
-            cv2.imwrite('{0}/{1}'.format(opt.outdir_keypose, rename), openpose_keypose)
-        cnt += 1
-    return
-
 def main():
     opt = parsr_args()
-
     caption_step(opt)
-    keypose_step(opt)
-
 
 if __name__ == "__main__":
     main()
