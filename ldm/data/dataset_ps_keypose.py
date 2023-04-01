@@ -2,56 +2,61 @@
 
 import json
 import cv2
+import pandas as pd
 import os
 from basicsr.utils import img2tensor
+from random import randint, shuffle
 
 class PsKeyposeDataset():
-    def __init__(self, file_path):
+    def __init__(self, data_size, caption_path, keypose_path):
+        # caption_path: csv file path -> read csv file
+        # keypose_path: image folder -> store image names
+
         super(PsKeyposeDataset, self).__init__()
+        try:
+            prompt_list = list(pd.read_csv(caption_path)['CAPTION'])
+        except:
+            raise Exception('Read caption failed. Possible reason: \'CAPTION\' does not exists')
+
+        listdir = os.listdir(keypose_path)
+        length = len(listdir)
+        index = []
+        image_list = []
+        while len(index) <= data_size:
+            one = randint(-1,length)
+            if one in index:
+                continue
+            index.append(randint(-1,length))
+            image_list.append(listdir[one])
+
+        # image: OpenKeypose image
 
         self.files = []
-        with open(file_path, 'r') as f:
-            lines = f.readlines()
-
-            # 一个文件中每一行都是条数据五元组中的文件路径，中间用空格分隔
-
-            for line in lines:
-                path_list = line.strip()
-                assert len(path_list)==5
-                keypose_path_1, keypose_path_2 = \
-                    path_list[0], path_list[1]
-                txt_path = path_list[2]
-                img_path_1, img_path_2 = \
-                    path_list[3], path_list[4]
-                self.files.append({
-                    "keypose_path_1": keypose_path_1,   # image path
-                    "keypose_path_2": keypose_path_2,   # image path
-                    "txt_path": txt_path,                   # txt path
-                    "img_path_1": img_path_1,           # jpg/jpeg/png
-                    "img_path_2": img_path_2            # jpg/jpeg/png
-                     })
-
-        # 文件中都用txt存图片路径，prompt直接读
-
+        for A, B in range(len(index)):
+            self.files.append({
+                 'primary': image_list[A],
+                 'secondary': image_list[B],
+                 'prompt': prompt_list[A]
+                 })
+            self.files.append({
+                 'primary': image_list[B],
+                 'secondary': image_list[A],
+                 'prompt': prompt_list[B]
+                })
+        shuffle(self.files)
 
     def __getitem__(self, idx):
         file = self.files[idx]
         assert isinstance(file, dict)
         read_img = lambda x: img2tensor(cv2.imread(x), bgr2rgb=True, float32=True) / 255.
 
-        img_1, img_2 = read_img(file['img_path_1']), read_img(file['img_path_2'])
-        keypose_1, keypose_2 = read_img(file['keypose_path_1']), read_img(file['keypose_path_2'])
-        # keypose点构建灰度图读入？
-
-        with open(file["txt_path"]) as p:
-            prompt = p.readline().strip()
+        A, B = read_img(file['primary']), read_img(file['secondary'])
+        prompt = file['prompot'].strip()
 
         return {
-            "img_1": img_1,
-            "img_2": img_2,
-            "prompt": prompt,
-            "keypose_1": keypose_1,
-            "keypose_2": keypose_2
+            'primray': A,
+            'secondary': B,
+            'prompt': prompt
         }
 
     def __len__(self):

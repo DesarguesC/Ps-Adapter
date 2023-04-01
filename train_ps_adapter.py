@@ -171,10 +171,22 @@ def parsr_args():
         help='node rank for distributed training'
     )
     parser.add_argument(
-        '--datasets',
-        default='datasets/laion_depth_meta_v1.txt',
+        '--caption_path',
+        default='Datasets/Captions/captions.csv',
         type=str,
-        help='path for datasets'
+        help='path for captions'
+    )
+    parser.add_argument(
+        '--keypose_folder',
+        default='Datasets/Keypose/',
+        type=str,
+        help='path for keypose'
+    )
+    parser.add_argument(
+        '--data_size',
+        default=5000,
+        type=int,
+        help='the amount of the data chosen from Datasets'
     )
 
     opt = parser.parse_args()
@@ -195,7 +207,7 @@ def main():
     torch.cuda.set_device(opt.local_rank)
 
     # read datasets
-    train_dataset = PsKeyposeDataset(opt.datasets)
+    train_dataset = PsKeyposeDataset(opt.data_size, opt.caption_path, opt.keypose_folder)
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
