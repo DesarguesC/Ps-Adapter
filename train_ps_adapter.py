@@ -201,6 +201,7 @@ def rates(ratios: dict):
 def main():
     opt = parsr_args()
     config = OmegaConf.load(f"{opt.config}")
+    print(opt.launcher)
     init_dist(opt.launcher)
     torch.backends.cudnn.benchmark = True
     device = 'cuda'
