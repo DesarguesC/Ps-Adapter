@@ -69,7 +69,7 @@ def caption_step(opt):
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
     output = '{0}/{1}'.format(opt.outdir_captions, 'captions.csv')
     # print(output)
-    os.remove(output)
+    # os.remove(output)
     if not os.path.exists(opt.outdir_captions):
         os.mkdir(opt.outdir_captions)
     file = open(output, "w", newline="")
