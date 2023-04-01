@@ -2,7 +2,7 @@
 tmp/*
 # /Datasets/*
 # Datasets/vit-gpt2-image-captioning/*
-/Datasets/Data/*
+#/Datasets/Data/*
 
 
 *.DS_Store
