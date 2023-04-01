@@ -29,6 +29,7 @@ version.py
 *.pth
 *.safetensors
 *.bin
+*.ckpt
 
 *.csv
 
