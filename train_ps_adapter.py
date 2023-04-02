@@ -208,6 +208,7 @@ def main():
     torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
+    
     train_dataset = PsKeyposeDataset(opt.data_size, opt.caption_path, opt.keypose_folder)
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
@@ -219,8 +220,14 @@ def main():
         sampler=train_sampler)
 
     # Stable-Diffusion Model
+    
+    print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
+    
     model, sampler = get_sd_models(opt)
     # Two Adapters
+    
+    print('loading adapters from {0}'.format(opt.sdapter_ori))
+    
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
         # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
@@ -245,6 +252,8 @@ def main():
     experiments_root = osp.join('experiments', opt.name)
 
     # resume state
+    print('getting resume state...')
+    
     resume_state = load_resume_state(opt)
     if resume_state is None:
         mkdir_and_rename(experiments_root)
