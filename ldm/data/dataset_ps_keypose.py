@@ -14,35 +14,38 @@ class PsKeyposeDataset():
 
         super(PsKeyposeDataset, self).__init__()
         try:
-            prompt_list = list(pd.read_csv(caption_path)['CAPTION'])
+            prompts = list(pd.read_csv(caption_path)['CAPTION'])
         except:
             raise Exception('Read caption failed. Possible reason: \'CAPTION\' does not exists')
 
         listdir = os.listdir(keypose_path)
         length = len(listdir)
-        index = []
-        image_list = []
+        assert length == len(prompts), 'Data preprocessing wrong.'
+        index, image_list, prompt_list = [], [], []
+
         while len(index) <= data_size:
-            one = randint(-1,length)
+            one = randint(-1, length)
             if one in index:
                 continue
-            index.append(randint(-1,length))
+            index.append(one)
             image_list.append(listdir[one])
+            prompt_list.append(prompts[one])
 
         # image: OpenKeypose image
 
         self.files = []
-        for A, B in range(len(index)):
-            self.files.append({
-                 'primary': image_list[A],
-                 'secondary': image_list[B],
-                 'prompt': prompt_list[A]
-                 })
-            self.files.append({
-                 'primary': image_list[B],
-                 'secondary': image_list[A],
-                 'prompt': prompt_list[B]
-                })
+        for A in range(len(index)):
+            for B in range(0,A):
+                self.files.append({
+                     'primary': image_list[A],
+                     'secondary': image_list[B],
+                     'prompt': prompt_list[A]
+                     })
+                self.files.append({
+                     'primary': image_list[B],
+                     'secondary': image_list[A],
+                     'prompt': prompt_list[B]
+                    })
         shuffle(self.files)
 
     def __getitem__(self, idx):

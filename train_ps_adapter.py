@@ -184,7 +184,7 @@ def parsr_args():
     )
     parser.add_argument(
         '--data_size',
-        default=5000,
+        default=500,
         type=int,
         help='the amount of the data chosen from Datasets'
     )
