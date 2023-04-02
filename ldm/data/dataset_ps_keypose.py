@@ -22,7 +22,8 @@ class PsKeyposeDataset():
         length = len(listdir)
         assert length == len(prompts), 'Data preprocessing wrong.'
         index, image_list, prompt_list = [], [], []
-
+        
+        print('Data Gathering...')
         while len(index) <= data_size:
             one = randint(-1, length)
             if one in index:
