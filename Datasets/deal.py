@@ -1,6 +1,20 @@
 import os
+import argparse
 
-PATH = '/root/Ps-Adapter/Datasets/Data'
+def parser_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="/root/Ps-Adapter/Datasets/Data",
+    )
+    parser.add_argument(
+        "--target",
+        type=str,
+        default="/root/Ps-Adapter/Datasets/sets"
+    )
+    opt = parser.parse_args()
+    return opt
 
 def get_bit(num):
     u = 0
@@ -29,26 +43,32 @@ def get_files(path):
     return file_list
 
 
-path = "/root/Ps-Adapter/Datasets/sets"  # 替换成目标文件夹的路径
-file_list = get_files(path)
 
-cnt = 0
+def main():
+    opt = parser_args()
+    PATH = opt.source
+    path = opt.target
+    file_list = get_files(path)
 
-from shutil import move as mv
-from os import rename as rn
+    cnt = 0
+    from shutil import move as mv
+    from os import rename as rn
 
-if not os.path.exists(PATH):
-    os.mkdir(PATH)
+    if not os.path.exists(PATH):
+        os.mkdir(PATH)
 
-    
-for file_path in file_list:
-    root_list = file_path.split('/')
-    root_list[-1] = get_name(cnt)
-    cnt += 1
-    new_name = '/'.join(root_list)
-    # print(file_path, ' -> ', new_name)
-    # print(new_name)
-    rn(file_path, new_name)
-    mv(new_name, PATH)
-    if cnt % 10000 == 1:
-        print("Still Running at: cnt = ", cnt)
+    for file_path in file_list:
+        root_list = file_path.split('/')
+        root_list[-1] = get_name(cnt)
+        cnt += 1
+        new_name = '/'.join(root_list)
+        # print(file_path, ' -> ', new_name)
+        # print(new_name)
+        rn(file_path, new_name)
+        mv(new_name, PATH)
+        if cnt % 10000 == 1:
+            print("Still Running at: cnt = ", cnt)
+
+
+if __name__=="__main__":
+    main()

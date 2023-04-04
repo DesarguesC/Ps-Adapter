@@ -54,7 +54,7 @@ def load_resume_state(opt):
     return resume_state
 
 
-def parsr_args():
+def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--bsize",
@@ -199,7 +199,7 @@ def rates(ratios: dict):
 
 
 def main():
-    opt = parsr_args()
+    opt = parser_args()
     config = OmegaConf.load(f"{opt.config}")
     print(opt.launcher)
     init_dist(opt.launcher)
