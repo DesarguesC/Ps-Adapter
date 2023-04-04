@@ -15,6 +15,9 @@ Install nlpconnct/vit-gpt2-image-captioning
 git lfs install
 git clone https://huggingface.co/nlpconnect/vit-gpt2-image-captioning
 ```
+And remember to put T2I-Adapter as well as stable-diffusion ckpt in folder 'models'.
+
+
 
 ## Datasets
 If you'd like to train the Ps-Adapter on your own dataset, there's only a need of images without lable.
@@ -25,6 +28,10 @@ All of images format '.png', '.jpg', '.jpeg', '.webp' are allowed to be put in r
 you can download only MPII-Human Pose dataset by running
 ```bat
 kaggle datasets download -d harshpatel66/mpii-human-pose
+```
+download Cricket Shot Dataset
+```bat
+kaggle datasets download -d aneesh10/cricket-shot-dataset
 ```
 
 
