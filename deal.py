@@ -19,13 +19,13 @@ def parsr_args():
     parser.add_argument(
         "--length",
         type=int,
-        default=8,
+        default=30,
         help='the max length of the word generated'
     )
     parser.add_argument(
         "--beams",
         type=int,
-        default=4,
+        default=5,
         help='embedding nums'
     )
     parser.add_argument(
@@ -52,6 +52,12 @@ def parsr_args():
         default=512*512,
         help='for resize'
     )
+    parser.add_argument(
+        "--random_num",
+        type=int,
+        default=1800,
+        help='choose 1800 samples'
+    )
     opt = parser.parse_args()
     return opt
 
@@ -59,17 +65,14 @@ def caption_step(opt):
     # opt.image should be a folder path of images
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # image_paths = opt.image
-    # images = [Image.open(image_paths if image_paths.mode == 'RGB' else image_paths.convert(mode='RGB'))] \
-    #           if is_image_file(image_paths) \
-    #         else [Image.open(one_image if one_image.mode == 'RGB' else one_image.convert(mode='RGB')) for one_image in os.listdir(image_paths) ]
 
-    # integrate images
-    # print(opt.length)
-    opt.outdir_captions = opt.outdir_captions if opt.outdir_captions.endswith('/') else opt .outdir_captions+'/'
+    opt.outdir_captions = opt.outdir_captions if opt.outdir_captions.endswith('/') else opt.outdir_captions+'/'
+    opt.outdir_keypose = opt.outdir_keypose if opt.outdir_keypose.endswith('/') else opt.outdir_keypose+'/'
+    opt.image = opt.image if opt.image.endswith('/') else opt.image + '/'
+
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
-    csv_output = '{0}{1}'.format(opt.outdir_captions, 'captions.csv')
-    # print(output)
+    csv_output = opt.outdir_captions + 'captions.csv'
+
     if os.path.exists(csv_output):
         os.remove(csv_output)
     if not os.path.exists(opt.outdir_captions):
@@ -90,7 +93,8 @@ def caption_step(opt):
             c += 2
             num = num // 10
         return c
-    name = lambda x: '0'*(7-get_bit(x)) + str(x) + '.png'
+    name = lambda x: '0'*(6-get_bit(x)) + str(x) + '.png'
+
     pose_model = OpenposeInference().to(device)
     image_paths = opt.image
     keypose_output = opt.outdir_keypose
@@ -99,12 +103,25 @@ def caption_step(opt):
         os.mkdir(keypose_output)
     cnt = 0
 
-    listdir = os.listdir(opt.image)
+    index, listdir = [], []
+    lists = os.listdir(opt.image)
+
+    print('Data Choosing...')
+    from random import randint
+    while len(index) <= opt.random_num:
+        one = randint(-1, opt.random_num)
+        if one in index:
+            continue
+        index.append(one)
+        listdir.append(lists[one])
+
     print('caption max number: ', opt.length)
     print('Dealing...')
+
     for image in listdir:
+        # image in name list; image ->
         print("captionning and estimating: ", image)
-        img = Image.open('{0}/{1}'.format(opt.image, image))
+        img = Image.open(opt.image + image)
         if not img.mode == 'RGB':
             img = img.convert(mode='RGB')
         with torch.autocast('cuda', dtype=torch.float32):
@@ -116,8 +133,7 @@ def caption_step(opt):
         writer.writerow(preds)
 
         img = cv2.imread('{0}/{1}'.format(image_paths, image))
-        # print('dealing with: {0}...'.format(image))
-        # print(img.shape, opt.resolution)
+
         openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
