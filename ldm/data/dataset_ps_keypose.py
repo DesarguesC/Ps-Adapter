@@ -9,7 +9,7 @@ from random import randint, shuffle
 
 class PsKeyposeDataset():
     def __init__(self, data_size, caption_path, keypose_path):
-        # caption_path: csv file path -> read csv file  
+        # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
 
         super(PsKeyposeDataset, self).__init__()

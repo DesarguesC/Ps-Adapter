@@ -46,8 +46,8 @@ def get_files(path):
 
 def main():
     opt = parser_args()
-    PATH = opt.source
-    path = opt.target
+    PATH = opt.target
+    path = opt.source
     file_list = get_files(path)
 
     cnt = 0
