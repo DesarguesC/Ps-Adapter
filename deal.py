@@ -66,21 +66,23 @@ def caption_step(opt):
 
     # integrate images
     # print(opt.length)
+    opt.outdir_captions = opt.outdir_captions if opt.outdir_captions.endswith('/') else opt .outdir_captions+'/'
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
-    csv_output = '{0}={1}/{2}'.format(opt.outdir_captions, opt.length, 'captions.csv')
+    csv_output = '{0}{1}'.format(opt.outdir_captions, 'captions.csv')
     # print(output)
     if os.path.exists(csv_output):
         os.remove(csv_output)
     if not os.path.exists(opt.outdir_captions):
+        print('bug')
         os.mkdir(opt.outdir_captions)
     file = open(csv_output, "w", newline="")
     writer = csv.writer(file)
     writer.writerow(['CAPTIONS'])
 
-    caption_model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    caption_model = VisionEncoderDecoderModel.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
     caption_model.to(device)
-    feature_extractor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    feature_extractor = ViTImageProcessor.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
+    tokenizer = AutoTokenizer.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
 
     def get_bit(num: int) -> int:
         c = 0
@@ -98,7 +100,7 @@ def caption_step(opt):
     cnt = 0
 
     listdir = os.listdir(opt.image)
-    print('caption max number: ', opt.max_length)
+    print('caption max number: ', opt.length)
     print('Dealing...')
     for image in listdir:
         print("captionning and estimating: ", image)
