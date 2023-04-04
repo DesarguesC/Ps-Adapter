@@ -18,6 +18,7 @@ git clone https://huggingface.co/nlpconnect/vit-gpt2-image-captioning
 And remember to put T2I-Adapter as well as stable-diffusion ckpt in folder 'models'.
 
 fetch whole clip model in folder 'models'
+
 ```bat
 git clone https://huggingface.co/openai/clip-vit-large-patch14
 ```
