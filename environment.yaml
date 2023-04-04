@@ -10,7 +10,7 @@ dependencies:
   - torchvision=0.12.0
   - numpy=1.19.2
   - pip:
-	- basicsr==1.4.2
+    - basicsr==1.4.2
     - albumentations==0.4.3
     - diffusers==0.11.1
     - pytorch_lightning==1.5.9
