@@ -9,7 +9,7 @@ from random import randint, shuffle
 
 class PsKeyposeDataset():
     def __init__(self, data_size, caption_path, keypose_path):
-        # caption_path: csv file path -> read csv file
+        # caption_path: csv file path -> read csv file  
         # keypose_path: image folder -> store image names
 
         super(PsKeyposeDataset, self).__init__()
@@ -22,7 +22,8 @@ class PsKeyposeDataset():
         length = len(listdir)
         assert length == len(prompts), 'Data preprocessing wrong.'
         index, image_list, prompt_list = [], [], []
-
+        
+        print('Data Gathering...')
         while len(index) <= data_size:
             one = randint(-1, length)
             if one in index:
