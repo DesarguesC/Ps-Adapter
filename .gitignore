@@ -4,6 +4,7 @@ tmp/*
 # Datasets/vit-gpt2-image-captioning/*
 #/Datasets/Data/*
 models/clip-vit-large-patch14/*
+nlpconnct/vit-gpt2-image-captioning/*
 
 
 
