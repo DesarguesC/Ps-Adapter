@@ -1,9 +1,9 @@
-transformers==4.20.0
-diffusers==0.11.1
+transformers>=4.20.0
+diffusers>=0.9.0
 invisible_watermark==0.1.5
 basicsr==1.4.2
 einops==0.6.0
-omegaconf==2.3.0
+omegaconf>=2.2.0
 pytorch_lightning==1.5.9
 kornia==0.6.8
 gradio
