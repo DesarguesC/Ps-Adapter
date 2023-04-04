@@ -21,6 +21,14 @@ If you'd like to train the Ps-Adapter on your own dataset, there's only a need o
 
 All of images format '.png', '.jpg', '.jpeg', '.webp' are allowed to be put in route Datasets/sets.
 
+
+you can download only MPII-Human Pose dataset by running
+```bat
+kaggle datasets download -d harshpatel66/mpii-human-pose
+```
+
+
+
 p.s.: You can download your image dataset (e.g. zip, tar, gz) onto Datasets/sets and hen unzip then direcly. By running
 ```bat
 cd Datasets
