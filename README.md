@@ -32,7 +32,7 @@ kaggle datasets download -d harshpatel66/mpii-human-pose
 p.s.: You can download your image dataset (e.g. zip, tar, gz) onto Datasets/sets and hen unzip then direcly. By running
 ```bat
 cd Datasets
-python deal.py
+python deal.py --source <your dataset folder> --target "YourRoot/Ps-Adapter/Datasets/Data"
 ```
 all images under folder Datasets/sets will we moved into Datasets/Data
 
