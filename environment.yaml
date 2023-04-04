@@ -1,4 +1,4 @@
-name: Ps-Adapter
+name: ldm
 channels:
   - pytorch
   - defaults
@@ -10,29 +10,30 @@ dependencies:
   - torchvision=0.12.0
   - numpy=1.19.2
   - pip:
-    - transformers==4.19.2
-    - basicsr==1.4.2
+	- basicsr==1.4.2
+    - albumentations==0.4.3
     - diffusers==0.11.1
-    - opencv-python
-    - invisible-watermark
+    - pytorch_lightning==1.5.9
+    - opencv-python==4.1.2.30
+    - pudb==2019.2
+    - invisible-watermark==0.1.5
     - imageio==2.9.0
     - imageio-ffmpeg==0.4.2
-    - pytorch-lightning==1.5.9
+    - pytorch-lightning==1.4.2
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.2
     - omegaconf==2.3.0
     - test-tube>=0.7.5
-    - imageio
-    - imageio-ffmpeg
+    - streamlit>=0.73.1
     - einops==0.6.0
+    - gradio==3.20.0
     - torch-fidelity==0.3.0
+    - transformers==4.27.4
     - torchmetrics==0.6.0
     - kornia==0.6.8
-    - webdataset
-    - safetensors
-    - timm
-    - pudb
+    - k-diffusion==0.0.14
+    - webdataset==0.2.35
+    - safetensors==0.3.0
     - -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
     - -e git+https://github.com/openai/CLIP.git@main#egg=clip
-    - openai
-    - gradio
-    - seaborn
-    - git+https://github.com/crowsonkb/k-diffusion.git
+    - -e .
