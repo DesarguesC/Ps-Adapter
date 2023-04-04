@@ -67,7 +67,7 @@ def caption_step(opt):
     # integrate images
     # print(opt.length)
     gen_kwargs = {"max_length": opt.length, "num_beams": opt.beams}
-    csv_output = '{0}={1}/{2}'.format(opt.outdir_captions, opt.max_length, 'captions.csv')
+    csv_output = '{0}={1}/{2}'.format(opt.outdir_captions, opt.length, 'captions.csv')
     # print(output)
     if os.path.exists(csv_output):
         os.remove(csv_output)
