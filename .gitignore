@@ -3,7 +3,7 @@ tmp/*
 # /Datasets/*
 # Datasets/vit-gpt2-image-captioning/*
 #/Datasets/Data/*
-/models/clip-vit-large-patch14/*
+models/clip-vit-large-patch14/*
 
 
 
