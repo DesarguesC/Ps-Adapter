@@ -14,28 +14,19 @@ class PsKeyposeDataset():
 
         super(PsKeyposeDataset, self).__init__()
         try:
-            prompts = list(pd.read_csv(caption_path)['CAPTION'])
+            prompt_list = list(pd.read_csv(caption_path)['CAPTION'])
         except:
             raise Exception('Read caption failed. Possible reason: \'CAPTION\' does not exists')
 
-        listdir = os.listdir(keypose_path)
-        length = len(listdir)
-        assert length == len(prompts), 'Data preprocessing wrong.'
-        index, image_list, prompt_list = [], [], []
-        
-        print('Data Gathering...')
-        while len(index) <= data_size:
-            one = randint(-1, length)
-            if one in index:
-                continue
-            index.append(one)
-            image_list.append(listdir[one])
-            prompt_list.append(prompts[one])
+        image_list= os.listdir(keypose_path)
+        length = len(image_list)
+        assert length == len(prompt_list), 'Data preprocessing wrong.'
 
         # image: OpenKeypose image
 
         self.files = []
-        for A in range(len(index)):
+        print('Ga')
+        for A in range(length):
             for B in range(0,A):
                 self.files.append({
                      'primary': image_list[A],
