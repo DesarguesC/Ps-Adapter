@@ -52,7 +52,7 @@ all images under folder Datasets/sets will we moved into Datasets/Data
 After that, run
 ```bat
 cd ..
-python caption_pose.py --max_length max_length --num_beams num_beams
+python deal.py --length max_length --beams num_beams --random_num
 ```
 to get captions and kepose images. Here, "max_length" and "num_beams" are parameters from [nlpconnect/vit-gpt2-image-captioning](https://huggingface.co/nlpconnect/vit-gpt2-image-captioning) program. So, make sure vit-gpt2 model has been installed.
 
