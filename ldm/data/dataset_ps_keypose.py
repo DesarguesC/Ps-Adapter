@@ -8,7 +8,7 @@ from basicsr.utils import img2tensor
 from random import randint, shuffle
 
 class PsKeyposeDataset():
-    def __init__(self, data_size, caption_path, keypose_path):
+    def __init__(self, caption_path, keypose_path):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
 
@@ -25,9 +25,9 @@ class PsKeyposeDataset():
         # image: OpenKeypose image
 
         self.files = []
-        print('Ga')
+        print('Binding Training Dataset...')
         for A in range(length):
-            for B in range(0,A):
+            for B in range(0, A):
                 self.files.append({
                      'primary': image_list[A],
                      'secondary': image_list[B],
@@ -49,7 +49,7 @@ class PsKeyposeDataset():
         prompt = file['prompot'].strip()
 
         return {
-            'primray': A,
+            'primary': A,
             'secondary': B,
             'prompt': prompt
         }

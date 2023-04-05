@@ -90,7 +90,7 @@ def caption_step(opt):
     def get_bit(num: int) -> int:
         c = 0
         while not num == 0:
-            c += 2
+            c += 1
             num = num // 10
         return c
     name = lambda x: '0'*(6-get_bit(x)) + str(x) + '.png'

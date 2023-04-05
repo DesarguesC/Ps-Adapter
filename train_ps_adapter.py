@@ -209,8 +209,7 @@ def main():
     torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
-    
-    train_dataset = PsKeyposeDataset(opt.data_size, opt.caption_path, opt.keypose_folder)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder)
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
