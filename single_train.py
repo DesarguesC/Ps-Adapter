@@ -13,7 +13,8 @@ from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
 from ldm.modules.encoders.adapter import Adapter
 from ldm.util import load_model_from_config
 
-from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser, get_sd_models)
+from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser,
+                                get_sd_models)
 from ldm.modules.extra_condition import api
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
 
@@ -69,7 +70,7 @@ def parsr_args():
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=8,
+        default=2,
         help="twice of the amount of GPU"
     )
     parser.add_argument(
@@ -102,7 +103,7 @@ def parsr_args():
     parser.add_argument(
         "--name",
         type=str,
-        default="train_depth",
+        default="train_ps_keypose",
         help="experiment name",
     )
     parser.add_argument(
@@ -154,17 +155,6 @@ def parsr_args():
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
-        "--gpus",
-        default=[0, 1, 2, 3],
-        help="gpu idx",
-    )
-    parser.add_argument(
-        '--local_rank',
-        default=0,
-        type=int,
-        help='node rank for distributed training'
-    )
-    parser.add_argument(
         '--launcher',
         default='pytorch',
         type=str,
@@ -192,6 +182,7 @@ def parsr_args():
     opt = parser.parse_args()
     return opt
 
+
 def rates(ratios: dict):
     assert 'alphas' in ratios, 'Invalid ratios.'
     alphas = ratios['alphas']
@@ -202,12 +193,11 @@ def main():
     opt = parsr_args()
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
-    init_dist(opt.launcher)
-    print('init done')
-    
+    print(opt.launcher)
+    # init_dist(opt.launcher)
     torch.backends.cudnn.benchmark = True
     device = 'cuda'
-    torch.cuda.set_device(opt.local_rank)
+    # torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder)
@@ -216,36 +206,24 @@ def main():
         train_dataset,
         batch_size=opt.bsize,
         shuffle=(train_sampler is None),
-        num_workers=opt.num_workers,
+        num_workers=0,
         pin_memory=True,
         sampler=train_sampler)
 
     # Stable-Diffusion Model
-    
+
     print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
-    
+
     model, sampler = get_sd_models(opt)
     # Two Adapters
-    
+
     print('loading adapters from {0}'.format(opt.sdapter_ori))
-    
+
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
-        # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
-        # hyper-parameters remained to be adjust
+    # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
+    # hyper-parameters remained to be adjust
 
-    model = torch.nn.parallel.DistributedDataParallel(
-        model,
-        device_ids=[opt.local_rank],
-        output_device=opt.local_rank)
-    primary_adapter = torch.nn.parallel.DistributedDataParallel(
-        primary_adapter,
-        device_ids=[opt.local_rank],
-        output_device=opt.local_rank)
-    secondary_adapter = torch.nn.parallel.DistributedDataParallel(
-        secondary_adapter,
-        device_ids=[opt.local_rank],
-        output_device=opt.local_rank)
 
     params = list(secondary_adapter.parameters())
     optimizer = torch.optim.AdamW(params, lr=config['training']['lr'])
@@ -254,7 +232,7 @@ def main():
 
     # resume state
     print('getting resume state...')
-    
+
     resume_state = load_resume_state(opt)
     if resume_state is None:
         mkdir_and_rename(experiments_root)
@@ -284,9 +262,11 @@ def main():
 
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
-    model_reflect = lambda x: model.module.get_first_stage_encoding(model.module.encode_first_stage((data[x]*2-1).to(device)))
+    model_reflect = lambda x: model.get_first_stage_encoding(
+        model.module.encode_first_stage((data[x] * 2 - 1).to(device)))
     for epoch in range(start_epoch, opt.epochs):
-        train_dataloader.sampler.set_epoch(epoch)
+        # train_dataloader.sampler.set_epoch(epoch)
+
         # train
         for _, data in enumerate(train_dataloader):
             current_iter += 1
@@ -294,7 +274,7 @@ def main():
                 c = model.module.get_learned_conditioning(data['prompt'])
                 A_0 = model_reflect('img_1')
                 B_0 = model_reflect('img_2')
-                const_B = get_cond_openpose(B_0)        # 实际上不需要图片只需要openpose
+                const_B = get_cond_openpose(B_0)  # only need openpose
                 features_A, context_A = primary_adapter(data['primary'].to(device))
 
                 # already went through 'img2tensor'
@@ -304,7 +284,6 @@ def main():
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
-
 
             features_B, append_B = secondary_adapter.module(data['secondary'].to(device))
             samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, append_B)
