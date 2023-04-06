@@ -294,7 +294,7 @@ def main():
                 A_0 = model_reflect('img_1')
                 B_0 = model_reflect('img_2')
                 const_B = get_cond_openpose(B_0)        # 实际上不需要图片只需要openpose
-                features_A, context_A = primary_adapter(data['keypose_1'].to(device))
+                features_A, context_A = primary_adapter(data['primary'].to(device))
 
                 # already went through 'img2tensor'
 
@@ -305,7 +305,7 @@ def main():
             primary_adapter.zero_grad()
 
 
-            features_B, append_B = secondary_adapter.module(data['keypose_2'].to(device))
+            features_B, append_B = secondary_adapter.module(data['secondary'].to(device))
             samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, append_B)
 
             u = (samples_B - const_B) ** 2
