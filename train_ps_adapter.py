@@ -202,8 +202,9 @@ def main():
     opt = parsr_args()
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
-    print(opt.launcher)
     init_dist(opt.launcher)
+    print('init done')
+    
     torch.backends.cudnn.benchmark = True
     device = 'cuda'
     torch.cuda.set_device(opt.local_rank)
