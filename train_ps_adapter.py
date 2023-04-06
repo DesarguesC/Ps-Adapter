@@ -96,7 +96,7 @@ def parsr_args():
     parser.add_argument(
         "--adapter_ckpt",
         type=str,
-        default=None
+        default="models/t2iadapter_keypose_sd14v1.pth"
     )
      parser.add_argument(
         "--cond_weight",
@@ -279,7 +279,7 @@ def main():
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
 
-    params = list(secondary_adapter.parameters())
+    params = list(secondary_adapter['model'].parameters())
     optimizer = torch.optim.AdamW(params, lr=config['training']['lr'])
 
     experiments_root = osp.join('experiments', opt.name)
@@ -327,7 +327,7 @@ def main():
                 A_0 = model_reflect('img_1')
                 B_0 = model_reflect('img_2')
                 const_B = get_cond_openpose(B_0)        # 实际上不需要图片只需要openpose
-                features_A, context_A = primary_adapter(data['primary'].to(device))
+                features_A, context_A = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
 
