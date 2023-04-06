@@ -95,6 +95,16 @@ def parsr_args():
         default="models/t2iadapter_keypose_sd14v1.pth"
     )
     parser.add_argument(
+        "--adapter_ckpt",
+        type=str,
+        default=None
+    )
+    parser.add_argument(
+        "--cond_weight",
+        type=str,
+        default="models/t2iadapter_keypose_sd14v1.pth"
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default="configs/stable-diffusion/sd-v1-train.yaml",
