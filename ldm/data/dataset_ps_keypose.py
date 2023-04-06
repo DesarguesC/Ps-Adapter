@@ -14,9 +14,9 @@ class PsKeyposeDataset():
 
         super(PsKeyposeDataset, self).__init__()
         try:
-            prompt_list = list(pd.read_csv(caption_path)['CAPTION'])
+            prompt_list = list(pd.read_csv(caption_path)['CAPTIONS'])
         except:
-            raise Exception('Read caption failed. Possible reason: \'CAPTION\' does not exists')
+            raise Exception('Read caption failed. Possible reason: "CAPTIONS" does not exists')
 
         image_list= os.listdir(keypose_path)
         length = len(image_list)
