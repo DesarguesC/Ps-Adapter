@@ -188,6 +188,28 @@ def parsr_args():
         type=int,
         help='the amount of the data chosen from Datasets'
     )
+    
+    parser.add_argument(
+        '--vae_ckpt',
+        default=None,
+        type=str,
+        help='vae checkpoint, anime SD models usually have seperate vae ckpt that need to be loaded'
+    )
+    parser.add_argument(
+        '--device',
+        default="cuda",
+        type=str,
+        help='device name'
+    )
+    parser.add_argument(
+        '--sampler',
+        type=str,
+        default='ddim',
+        choices=['ddim', 'plms'],
+        help='sampling algorithm, currently, only ddim and plms are supported, more are on the way',
+    )
+    
+
 
     opt = parser.parse_args()
     return opt
@@ -227,7 +249,7 @@ def main():
     model, sampler = get_sd_models(opt)
     # Two Adapters
     
-    print('loading adapters from {0}'.format(opt.sdapter_ori))
+    print('loading adapters from {0}'.format(opt.adapter_ori))
     
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))

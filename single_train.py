@@ -178,6 +178,26 @@ def parsr_args():
         type=int,
         help='the amount of the data chosen from Datasets'
     )
+    parser.add_argument(
+        '--vae_ckpt',
+        default=None,
+        type=str,
+        help='vae checkpoint, anime SD models usually have seperate vae ckpt that need to be loaded'
+    )
+    parser.add_argument(
+        '--device',
+        default="cuda",
+        type=str,
+        help='device name'
+    )
+    parser.add_argument(
+        '--sampler',
+        type=str,
+        default='ddim',
+        choices=['ddim', 'plms'],
+        help='sampling algorithm, currently, only ddim and plms are supported, more are on the way',
+    )
+
 
     opt = parser.parse_args()
     return opt
@@ -201,23 +221,23 @@ def main():
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.bsize,
-        shuffle=(train_sampler is None),
+        shuffle=True,
         num_workers=0,
         pin_memory=True,
-        sampler=train_sampler)
+        sampler=None)
 
     # Stable-Diffusion Model
 
-    print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
+    # print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
 
     model, sampler = get_sd_models(opt)
     # Two Adapters
 
-    print('loading adapters from {0}'.format(opt.sdapter_ori))
+    print('loading adapters from {0}'.format(opt.adapter_ori))
 
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
