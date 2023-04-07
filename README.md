@@ -6,6 +6,11 @@ The project is based on Tencent T2I-Adapter.
 
 ## Packages
 
+create environment
+```bat
+conda env create -f environment.yaml
+```
+
 install packages as required by
 ```bat
 pip install -r requirements.txt
@@ -13,7 +18,7 @@ pip install -r requirements.txt
 Install nlpconnct/vit-gpt2-image-captioning
 ```bat
 git lfs install
-git clone https://huggingface.co/nlpconnect/vit-gpt2-image-captioning
+git clone https://huggingface.co/nlpconnct/vit-gpt2-image-captioning
 ```
 And remember to put T2I-Adapter as well as stable-diffusion ckpt in folder 'models'.
 
@@ -32,6 +37,7 @@ All of images format '.png', '.jpg', '.jpeg', '.webp' are allowed to be put in r
 
 you can download only MPII-Human Pose dataset by running
 ```bat
+cd Datasets
 kaggle datasets download -d harshpatel66/mpii-human-pose
 ```
 download Cricket Shot Dataset
