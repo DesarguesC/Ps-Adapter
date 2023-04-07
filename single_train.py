@@ -7,7 +7,7 @@ from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
                            scandir)
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
-
+import time
 from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
 from ldm.modules.encoders.adapter import Adapter
@@ -316,7 +316,7 @@ def main():
         model.encode_first_stage((data[x] * 2 - 1).to(device)))
     for epoch in range(start_epoch, opt.epochs):
         # train_dataloader.sampler.set_epoch(epoch)
-
+        epoch_start_time = time.time()
         # train
         for _, data in enumerate(train_dataloader):
             # print(type(data))
@@ -349,6 +349,8 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
+
+            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Exception))
 
             Expectation.backward()
             optimizer.step()
