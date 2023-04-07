@@ -1,6 +1,16 @@
 import os
 import argparse
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
 def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -13,6 +23,15 @@ def parser_args():
         type=str,
         default="/root/Ps-Adapter/Datasets/sets"
     )
+    parser.add_argument(
+        "--resize",
+        type=str2bool,
+        default=False,
+        help='whether to resize images'
+    )
+
+    # download factor: deduce CUDA memory
+
     opt = parser.parse_args()
     return opt
 
