@@ -313,19 +313,19 @@ def main():
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.get_first_stage_encoding(
-        model.module.encode_first_stage((data[x] * 2 - 1).to(device)))
+        model.encode_first_stage((data[x] * 2 - 1).to(device)))
     for epoch in range(start_epoch, opt.epochs):
         # train_dataloader.sampler.set_epoch(epoch)
 
         # train
         for _, data in enumerate(train_dataloader):
-            print(type(data))
+            # print(type(data))
             # print(data)
             current_iter += 1
             with torch.no_grad():
                 c = model.get_learned_conditioning(data['prompt'])
-                A_0 = model_reflect('img_1')
-                B_0 = model_reflect('img_2')
+                A_0 = model_reflect('primary')
+                B_0 = model_reflect('secondary')
                 const_B = get_cond_openpose(B_0)  # only need openpose
                 features_A, context_A = primary_adapter['model'](data['primary'].to(device))
 
