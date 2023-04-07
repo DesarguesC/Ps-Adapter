@@ -9,6 +9,12 @@ import torch
 from basicsr.utils import img2tensor
 from PIL import Image
 
+Inter = {
+    'inter_cubic': cv2.INTER_CUBIC,
+    'inter_linear': cv2.INTER_LINEAR,
+    'inter_nearest': cv2.INTER_NEAREST,
+    'inter_lanczos4': cv2.INTER_LANCZOS4
+}
 
 def is_image_file(image_path: str) -> bool:
     return image_path.lower().endswith('.jpeg') or image_path.lower().endswith('.jpg') \
@@ -80,6 +86,12 @@ def parser_args():
         default='inter_cubic',
         choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
         help='resize shape'
+    )
+    parser.add_argument(
+        "--factor",
+        type=int,
+        default=4,
+        help='download factor'
     )
     opt = parser.parse_args()
     return opt
@@ -191,6 +203,7 @@ def keypose_step(opt):
     print("getting keypose canvas...")
     for image in listdir:
         img = cv2.imread('{0}/{1}'.format(image_paths, image))
+        img = cv2.resize(img, (img.shape[:2] / opt.factor), interpolation= Inter[opt.inter])
         print('dealing with: {0}...'.format(image))
         # print(img.shape, opt.resolution)
         openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
