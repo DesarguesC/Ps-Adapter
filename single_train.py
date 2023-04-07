@@ -300,7 +300,7 @@ def main():
         # train
         for _, data in enumerate(train_dataloader):
             print(type(data))
-            print(data)
+            # print(data)
             current_iter += 1
             with torch.no_grad():
                 c = model.module.get_learned_conditioning(data['prompt'])
