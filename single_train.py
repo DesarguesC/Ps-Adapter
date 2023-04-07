@@ -223,6 +223,13 @@ def parsr_args():
         default=False,
         help='resize image shape'
     )
+    parser.add_argument(
+        "--inter",
+        type=str,
+        default='inter_cubic',
+        choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
+        help='resize shape'
+    )
 
 
     opt = parser.parse_args()

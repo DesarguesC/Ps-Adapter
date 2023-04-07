@@ -75,8 +75,10 @@ def parser_args():
         help='ensure images the same shape'
     )
     parser.add_argument(
-        "--shape",
-        default=[384, 704],
+        "--inter",
+        type=str,
+        default='inter_cubic',
+        choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
         help='resize shape'
     )
     opt = parser.parse_args()
