@@ -206,7 +206,7 @@ def debug(opt):
 
 def main():
     opt = parser_args()
-    debug(opt)
+    # debug(opt)
     caption_step(opt)
     # keypose_step(opt)
 

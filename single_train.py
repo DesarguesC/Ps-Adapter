@@ -35,6 +35,16 @@ def mkdir_and_rename(path):
     os.makedirs(osp.join(path, 'training_states'))
     os.makedirs(osp.join(path, 'visualization'))
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+        
 
 def load_resume_state(opt):
     resume_state_path = None
@@ -207,6 +217,12 @@ def parsr_args():
         choices=['ddim', 'plms'],
         help='sampling algorithm, currently, only ddim and plms are supported, more are on the way',
     )
+    parser.add_argument(
+        '--resize',
+        type=str2bool,
+        default=False,
+        help='resize image shape'
+    )
 
 
     opt = parser.parse_args()
@@ -230,7 +246,7 @@ def main():
     # torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
-    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
