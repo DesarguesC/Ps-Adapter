@@ -22,15 +22,20 @@ def deal(Input):
     Input = Input.reshape(t, -1, 3)
     return Input
 
+# def divide(shape, factor):
+#     return (shape[0] // factor, shape[1] // factor)
+
 
 class PsKeyposeDataset():
-    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic"):
+    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic", factor=1):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
         self.caption_path = caption_path
         self.keypose_path = keypose_path if keypose_path.endswith('/') else keypose_path + '/'
         self.resize = resize
         self.inter = interpolation
+        self.factor = factor
+        self.flag = 0
 
         super(PsKeyposeDataset, self).__init__()
         try:
@@ -65,28 +70,38 @@ class PsKeyposeDataset():
         assert isinstance(file, dict)
         read_img = lambda x: img2tensor(x, bgr2rgb=True, float32=True) / 255.
         
-        A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])   
+        A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])
+        # read
         A = deal(A)
         B = deal(B)
-        print(A.shape, B.shape)
+        # regular
+        if self.flag == 0:
+            w , h = A.shape[0] // self.factor, A.shape[1] // self.factor
+            B = cv2.resize(B, (w,h), interpolation=Inter[self.inter])
+            A = cv2.resize(A, (w,h), interpolation=Inter[self.inter])
+            self.shape = (w, h)
+            self.flag = 1
+        elif self.flag==1:
+            B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
+            A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
+        # B first
+        # down sample and resize
         
-        if not A.shape == B.shape and self.resize:
-            assert A.shape[-1] == B.shape[-1], 'bad argument A, B'
-            B = cv2.resize(B, A.shape[:2], interpolation=Inter[self.inter])
-            
+        assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         
-        # print(A.shape, B.shape)
         if not A.shape == B.shape:
             B = rearrange(B, 'u v w -> v u w')
-        assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         prompt = file['prompt'].strip()
-        print('one group')
+        # print('one group')
         
-        assert read_img(A).shape==read_img(B).shape, 'here!!!'
-        
+        assert A.shape==B.shape, 'here...'
+        A = read_img(A)
+        B = read_img(B)    
+        assert A.shape==B.shape, 'here!!!'
+        print(A.shape, B.shape)
         return {
-            'primary': read_img(A),
-            'secondary': read_img(B),
+            'primary': A,
+            'secondary': B,
             'prompt': prompt
         }
 

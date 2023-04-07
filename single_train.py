@@ -44,6 +44,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
+
         
 
 def load_resume_state(opt):
@@ -230,6 +231,12 @@ def parsr_args():
         choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
         help='resize shape'
     )
+    parser.add_argument(
+        "--factor",
+        type=int,
+        default=8,
+        help='download sample factor'
+    )
 
 
     opt = parser.parse_args()
@@ -253,7 +260,7 @@ def main():
     # torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
-    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
@@ -326,7 +333,7 @@ def main():
                 c = model.get_learned_conditioning(data['prompt'])
                 A_0 = model_reflect('primary')
                 B_0 = model_reflect('secondary')
-                const_B = get_cond_openpose(B_0)  # only need openpose
+                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
                 features_A, context_A = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
