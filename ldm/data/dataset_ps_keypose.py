@@ -59,16 +59,16 @@ class PsKeyposeDataset():
         read_img = lambda x: img2tensor(x, bgr2rgb=True, float32=True) / 255.
         
         A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])    
-        print(A.shape, B.shape)
+        # print(A.shape, B.shape)
         
         if not A.shape == B.shape and self.resize:
             assert A.shape[-1] == B.shape[-1], 'bad argument A, B'
             B = cv2.resize(B, A.shape[:2], interpolation=Inter[self.inter])
             
         
-        print(A.shape, B.shape)
-        
-        B = rearrange(B, 'u v w -> v u w')
+        # print(A.shape, B.shape)
+        if not A.shape == B.shape:
+            B = rearrange(B, 'u v w -> v u w')
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         prompt = file['prompt'].strip()
         
