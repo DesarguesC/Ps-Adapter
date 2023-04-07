@@ -5,7 +5,7 @@ tmp/*
 #/Datasets/Data/*
 models/*
 nlpconnct/*
-
+experiments/*
 
 
 *.DS_Store
