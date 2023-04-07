@@ -82,6 +82,8 @@ class PsKeyposeDataset():
         prompt = file['prompt'].strip()
         print('one group')
         
+        assert read_img(A).shape==read_img(B).shape, 'here!!!'
+        
         return {
             'primary': read_img(A),
             'secondary': read_img(B),
