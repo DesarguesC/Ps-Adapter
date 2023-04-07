@@ -80,7 +80,7 @@ class PsKeyposeDataset():
             B = rearrange(B, 'u v w -> v u w')
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         prompt = file['prompt'].strip()
-        
+        print('one group')
         
         return {
             'primary': read_img(A),
