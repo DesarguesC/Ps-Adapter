@@ -6,13 +6,16 @@ import pandas as pd
 import os
 from basicsr.utils import img2tensor
 from random import randint, shuffle
+from ldm.util import resize_numpy_image
 
 class PsKeyposeDataset():
-    def __init__(self, caption_path, keypose_path):
+    def __init__(self, caption_path, keypose_path, resize=False, max_resolution=512*512):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
         self.caption_path = caption_path
         self.keypose_path = keypose_path if keypose_path.endswith('/') else keypose_path + '/'
+        self.resize = resize
+        self.max_resolution = max_resolution
 
         super(PsKeyposeDataset, self).__init__()
         try:
@@ -45,10 +48,11 @@ class PsKeyposeDataset():
     def __getitem__(self, idx):
         file = self.files[idx]
         assert isinstance(file, dict)
-        read_img = lambda x: img2tensor(cv2.imread(x), bgr2rgb=True, float32=True) / 255.
+        read_img = lambda x: img2tensor(resize_numpy_image(cv2.imread(x), max_resolution=self.max_resolution) \
+                                            if self.resize else cv2.imread(x), bgr2rgb=True, float32=True) / 255.
         
         A, B = read_img(self.keypose_path+file['primary']), read_img(self.keypose_path+file['secondary'])
-        assert A.shape==B.shape, 'two keypose must have same shape'
+        assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         prompt = file['prompt'].strip()
         print(A.shape, B.shape)
         

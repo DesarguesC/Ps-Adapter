@@ -98,7 +98,7 @@ def parsr_args():
         type=str,
         default="models/t2iadapter_keypose_sd14v1.pth"
     )
-     parser.add_argument(
+    parser.add_argument(
         "--cond_weight",
         type=str,
         default="models/t2iadapter_keypose_sd14v1.pth"

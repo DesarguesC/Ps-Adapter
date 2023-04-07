@@ -14,7 +14,17 @@ def is_image_file(image_path: str) -> bool:
     return image_path.lower().endswith('.jpeg') or image_path.lower().endswith('.jpg') \
          or image_path.lower().endswith('.png') or image_path.lower().endswith('.webp')
 
-def parsr_args():
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+def parser_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--length",
@@ -57,6 +67,17 @@ def parsr_args():
         type=int,
         default=1800,
         help='choose 1800 samples'
+    )
+    parser.add_argument(
+        "--resize",
+        type=str2bool,
+        default=False,
+        help='ensure images the same shape'
+    )
+    parser.add_argument(
+        "--shape",
+        default=[384, 704],
+        help='resize shape'
     )
     opt = parser.parse_args()
     return opt
@@ -134,6 +155,7 @@ def caption_step(opt):
 
         img = cv2.imread('{0}/{1}'.format(image_paths, image))
 
+
         openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
@@ -177,8 +199,14 @@ def keypose_step(opt):
         cnt += 1
     return
 
+def debug(opt):
+    print(opt.shape)
+    import sys
+    sys.exit(0)
+
 def main():
-    opt = parsr_args()
+    opt = parser_args()
+    debug(opt)
     caption_step(opt)
     # keypose_step(opt)
 
