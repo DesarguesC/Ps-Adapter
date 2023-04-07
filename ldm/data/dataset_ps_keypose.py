@@ -11,6 +11,8 @@ class PsKeyposeDataset():
     def __init__(self, caption_path, keypose_path):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
+        self.caption_path = caption_path
+        self.keypose_path = keypose_path if keypose_path.endswith('/') else keypose_path + '/'
 
         super(PsKeyposeDataset, self).__init__()
         try:
@@ -45,8 +47,8 @@ class PsKeyposeDataset():
         assert isinstance(file, dict)
         read_img = lambda x: img2tensor(cv2.imread(x), bgr2rgb=True, float32=True) / 255.
 
-        A, B = read_img(file['primary']), read_img(file['secondary'])
-        prompt = file['prompot'].strip()
+        A, B = read_img(self.keypose_path+file['primary']), read_img(self.keypose_path+file['secondary'])
+        prompt = file['prompt'].strip()
 
         return {
             'primary': A,
