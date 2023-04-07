@@ -3,6 +3,7 @@
 import json
 import cv2
 import pandas as pd
+import numpy as np
 import os
 from basicsr.utils import img2tensor
 from random import randint, shuffle
@@ -68,7 +69,7 @@ class PsKeyposeDataset():
     def __getitem__(self, idx):
         file = self.files[idx]
         assert isinstance(file, dict)
-        read_img = lambda x: img2tensor(x, bgr2rgb=True, float32=True) / 255.
+        read_img = lambda x: np.array(x / 255., dtype=np.float32) # img2tensor(x, bgr2rgb=True, float32=True) / 255.
         
         A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])
         # read
@@ -89,15 +90,18 @@ class PsKeyposeDataset():
         
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
         
-        if not A.shape == B.shape:
-            B = rearrange(B, 'u v w -> v u w')
+        # if not A.shape == B.shape:
+        #     B = rearrange(B, 'u v w -> v u w')
         prompt = file['prompt'].strip()
         # print('one group')
         
         assert A.shape==B.shape, 'here...'
+        print(type(A))
         A = read_img(A)
         B = read_img(B)    
         assert A.shape==B.shape, 'here!!!'
+        A = rearrange(A, 'u v w -> w u v')
+        B = rearrange(B, 'u v w -> w u v')
         print(A.shape, B.shape)
         return {
             'primary': A,

@@ -256,7 +256,7 @@ def main():
     opt = parsr_args()
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
-    print(opt.launcher)
+    # print(opt.launcher)
     # init_dist(opt.launcher)
     torch.backends.cudnn.benchmark = True
     device = 'cuda'
@@ -323,7 +323,7 @@ def main():
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.get_first_stage_encoding(
-        model.encode_first_stage((data[x] * 2 - 1).to(device)))
+        model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
     for epoch in range(start_epoch, opt.epochs):
         # train_dataloader.sampler.set_epoch(epoch)
         epoch_start_time = time.time()
@@ -334,6 +334,8 @@ def main():
             current_iter += 1
             with torch.no_grad():
                 c = model.get_learned_conditioning(data['prompt'])
+                # CLIP
+                
                 A_0 = model_reflect('primary')
                 B_0 = model_reflect('secondary')
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
