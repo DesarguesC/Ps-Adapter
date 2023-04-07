@@ -16,6 +16,13 @@ Inter = {
     'inter_lanczos': cv2.INTER_LANCZOS4
 }
 
+def deal(Input):
+    t = Input.shape[0]
+    s = t if not t==3 else Input.shape[1]
+    Input = Input.reshape(t, -1, 3)
+    return Input
+
+
 class PsKeyposeDataset():
     def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic"):
         # caption_path: csv file path -> read csv file
@@ -58,8 +65,10 @@ class PsKeyposeDataset():
         assert isinstance(file, dict)
         read_img = lambda x: img2tensor(x, bgr2rgb=True, float32=True) / 255.
         
-        A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])    
-        # print(A.shape, B.shape)
+        A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])   
+        A = deal(A)
+        B = deal(B)
+        print(A.shape, B.shape)
         
         if not A.shape == B.shape and self.resize:
             assert A.shape[-1] == B.shape[-1], 'bad argument A, B'

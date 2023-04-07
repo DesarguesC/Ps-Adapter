@@ -323,7 +323,7 @@ def main():
             # print(data)
             current_iter += 1
             with torch.no_grad():
-                c = model.module.get_learned_conditioning(data['prompt'])
+                c = model.get_learned_conditioning(data['prompt'])
                 A_0 = model_reflect('img_1')
                 B_0 = model_reflect('img_2')
                 const_B = get_cond_openpose(B_0)  # only need openpose
@@ -352,6 +352,8 @@ def main():
 
             Expectation.backward()
             optimizer.step()
+            
+            
 
             if (current_iter + 1) % opt.print_fq == 0:
                 logger.info(loss_dict)
