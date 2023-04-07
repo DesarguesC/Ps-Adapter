@@ -46,10 +46,12 @@ class PsKeyposeDataset():
         file = self.files[idx]
         assert isinstance(file, dict)
         read_img = lambda x: img2tensor(cv2.imread(x), bgr2rgb=True, float32=True) / 255.
-
+        
         A, B = read_img(self.keypose_path+file['primary']), read_img(self.keypose_path+file['secondary'])
+        assert A.shape==B.shape, 'two keypose must have same shape'
         prompt = file['prompt'].strip()
-
+        print(A.shape, B.shape)
+        
         return {
             'primary': A,
             'secondary': B,
