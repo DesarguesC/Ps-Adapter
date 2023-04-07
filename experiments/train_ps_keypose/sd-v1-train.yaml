@@ -1,4 +1,4 @@
-# GENERATE TIME: Thu Apr  6 19:03:07 2023
+# GENERATE TIME: Fri Apr  7 09:46:21 2023
 # CMD:
 # single_train.py --sd_ckpt /root/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --caption_path /root/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder /root/autodl-tmp/Datasets/Keypose/
 
