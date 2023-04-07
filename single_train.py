@@ -235,10 +235,7 @@ def main():
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.bsize,
-        shuffle=True,
-        num_workers=0,
-        pin_memory=True,
-        sampler=None)
+        shuffle=True)
 
     # Stable-Diffusion Model
 
