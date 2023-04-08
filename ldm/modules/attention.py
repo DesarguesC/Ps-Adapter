@@ -173,17 +173,18 @@ class CrossAttention(nn.Module):
         v = self.to_v(context)
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
+        # PixUnshuffle
+        print('q.shape={0}, k.shape={1}, v.shape={2}'.format(q.shape, k.shape, v.shape))
 
         # force cast to fp32 to avoid overflowing
         if _ATTN_PRECISION =="fp32":
             with torch.autocast(enabled=False, device_type = 'cuda'):
                 q, k = q.float(), k.float()
+                # print('q.shape={0}, k.shape={1}'.format(q.shape, k.shape))
                 
-                print('q.shape={0}, k.shape={1}'.format(q.shape, k.shape))
-                
-                sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+                sim = einsum('b i d, k j d -> b i j', q, k) * self.scale
         else:
-            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+            sim = einsum('b i d, k j d -> b i j', q, k) * self.scale
 
         del q, k
 
@@ -195,8 +196,8 @@ class CrossAttention(nn.Module):
 
         # attention, what we cannot get enough of
         sim = sim.softmax(dim=-1)
-
-        out = einsum('b i j, b j d -> b i d', sim, v)
+        print('sim.shape={0}, v.shape={1}'.format(sim.shape, v.shape))
+        out = einsum('b i j, k j d -> b i d', sim, v)
         out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
         return self.to_out(out)
 
