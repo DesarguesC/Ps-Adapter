@@ -36,7 +36,7 @@ class PsKeyposeDataset():
         self.resize = resize
         self.inter = interpolation
         self.factor = factor
-        self.flag = 0
+        
 
         super(PsKeyposeDataset, self).__init__()
         try:
@@ -65,6 +65,12 @@ class PsKeyposeDataset():
                      'prompt': prompt_list[B]
                     })
         shuffle(self.files)
+        
+        A = cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary'])
+        w, h, _ = A.shape
+        self.shape = (w//factor, h//factor)
+        
+        
 
     def __getitem__(self, idx):
         file = self.files[idx]
@@ -76,15 +82,8 @@ class PsKeyposeDataset():
         A = deal(A)
         B = deal(B)
         # regular
-        if self.flag == 0:
-            w , h = A.shape[0] // self.factor, A.shape[1] // self.factor
-            B = cv2.resize(B, (w,h), interpolation=Inter[self.inter])
-            A = cv2.resize(A, (w,h), interpolation=Inter[self.inter])
-            self.shape = (w, h)
-            self.flag = 1
-        elif self.flag==1:
-            B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
-            A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
+        B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
+        A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
         # B first
         # down sample and resize
         
@@ -96,7 +95,7 @@ class PsKeyposeDataset():
         # print('one group')
         
         assert A.shape==B.shape, 'here...'
-        print(type(A))
+        # print(type(A))
         A = read_img(A)
         B = read_img(B)    
         assert A.shape==B.shape, 'here!!!'

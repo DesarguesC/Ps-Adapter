@@ -4,7 +4,8 @@ import os
 import os.path as osp
 import torch
 from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
-                           scandir)
+                           scandir, tensor2img)
+
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
 import time
@@ -261,6 +262,10 @@ def main():
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
+    SHAPE = train_dataset.shape
+    max_resolution = SHAPE[0] * SHAPE[1]
+    setattr(opt, 'max_resolution', max_resolution)
+    setattr(opt, 'resize_short_edge', None)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
@@ -333,13 +338,16 @@ def main():
                 c = model.get_learned_conditioning(data['prompt'])
                 # CLIP
                 
-                A_0 = model_reflect('primary')
-                B_0 = model_reflect('secondary')
+                A_0 = tensor2img(model_reflect('primary'))
+                B_0 = tensor2img(model_reflect('secondary'))
+                
+                print(type(B_0))
+                
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
                 features_A, context_A = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
-
+                
                 samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, context_A)
 
             optimizer.zero_grad()
