@@ -177,6 +177,13 @@ def parsr_args():
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
     parser.add_argument(
+        '--cond_tau',
+        type=float,
+        default=1.0,
+        help='timestamp parameter that determines until which step the adapter is applied, '
+        'similar as Prompt-to-Prompt tau'
+    )
+    parser.add_argument(
         '--launcher',
         default='pytorch',
         type=str,
