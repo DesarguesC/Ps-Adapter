@@ -344,11 +344,13 @@ def main():
                 print(type(B_0))
                 
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
-                features_A, context_A = primary_adapter['model'](data['primary'].to(device))
+                # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
+                features_A  = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
                 
-                samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, context_A)
+                # samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, context_A)
+                samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, append_to_context=None)
 
             optimizer.zero_grad()
             model.zero_grad()
