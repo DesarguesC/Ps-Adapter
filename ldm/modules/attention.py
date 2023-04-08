@@ -174,7 +174,7 @@ class CrossAttention(nn.Module):
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
         # PixUnshuffle
-        print('q.shape={0}, k.shape={1}, v.shape={2}'.format(q.shape, k.shape, v.shape))
+        # print('q.shape={0}, k.shape={1}, v.shape={2}'.format(q.shape, k.shape, v.shape))
 
         # force cast to fp32 to avoid overflowing
         if _ATTN_PRECISION =="fp32":
