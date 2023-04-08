@@ -159,7 +159,7 @@ def parsr_args():
         help="downsampling factor",
     )
     parser.add_argument(
-        "--sample_steps",
+        "--steps",
         type=int,
         default=50,
         help="number of ddim sampling steps",
@@ -349,15 +349,15 @@ def main():
 
                 # already went through 'img2tensor'
                 
-                # samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, context_A)
-                samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, append_to_context=None)
+                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose)
 
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
 
-            features_B, append_B = secondary_adapter.module(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, append_B)
+            # features_B, append_B = secondary_adapter(data['secondary'].to(device))
+            features_B = secondary_adapter(data['secondary'].to(device))
+            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
 
             u = (samples_B - const_B) ** 2
             v = (samples_B - samples_A) ** 2

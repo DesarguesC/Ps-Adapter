@@ -284,15 +284,15 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
     return x_samples
 
 
-def train_inference(opt, model, sampler, adapter_features, cond_model, append_to_context=None):
+def train_inference(opt, c, model, sampler, adapter_features, cond_model, append_to_context=None):
     # # openpose
     # from ldm.modules.extra_condition.openpose.api import OpenposeInference
     # embed_model = OpenposeInference().to(opt.device)
 
     # get text embedding
-    c = model.get_learned_conditioning([opt.prompt])
+    
     if opt.scale != 1.0:
-        uc = model.get_learned_conditioning([opt.neg_prompt])
+        uc = model.get_learned_conditioning([DEFAULT_NEGATIVE_PROMPT])
     else:
         uc = None
     c, uc = fix_cond_shapes(model, c, uc)
