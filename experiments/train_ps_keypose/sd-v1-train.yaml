@@ -1,6 +1,6 @@
-# GENERATE TIME: Sat Apr  8 11:39:45 2023
+# GENERATE TIME: Sat Apr  8 13:24:20 2023
 # CMD:
-# single_train.py --sd_ckpt /root/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --caption_path /root/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder /root/autodl-tmp/Datasets/Keypose/ --resize yes --factor 2
+# single_train.py --sd_ckpt /root/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt /root/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --caption_path /root/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder /root/autodl-tmp/Datasets/Keypose/ --resize yes --factor 4 --bsize 2
 
 model:
   base_learning_rate: 1.0e-04
