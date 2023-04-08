@@ -178,6 +178,9 @@ class CrossAttention(nn.Module):
         if _ATTN_PRECISION =="fp32":
             with torch.autocast(enabled=False, device_type = 'cuda'):
                 q, k = q.float(), k.float()
+                
+                print('q.shape={0}, k.shape={1}'.format(q.shape, k.shape))
+                
                 sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
         else:
             sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
