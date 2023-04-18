@@ -767,6 +767,7 @@ class UNetModel(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional.
         :return: an [N x C x ...] Tensor of outputs.
         """
+        print('x.shape = ', x.shape)
         assert (y is not None) == (
             self.num_classes is not None
         ), "must specify y if and only if the model is class-conditional"
@@ -785,9 +786,11 @@ class UNetModel(nn.Module):
 
         adapter_idx = 0
         for id, module in enumerate(self.input_blocks):
+            print('before: h.shape = ', h.shape)
             h = module(h, emb, context)
+            print('after: h.shape = ', h.shape)
             if ((id+1)%3 == 0) and features_adapter is not None:
-                print('type(h)={0}, type(features_adapter)={1}'.format(type(h), type(features_adapter)))
+                
                 print('h.shape={0}, features_adapter.shape={1}'.format(h.shape, features_adapter[adapter_idx].shape))
                 h = h + features_adapter[adapter_idx]
                 # inject features gained from adapters into convolution layer in u-net

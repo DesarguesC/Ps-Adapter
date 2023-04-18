@@ -351,9 +351,10 @@ def main():
                 A_0 = tensor2img(model_reflect('primary'))
                 B_0 = tensor2img(model_reflect('secondary'))
                 
-                print(type(B_0))
+                # print(type(B_0))
                 
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
+                print('const_B.shape = ', const_B.shape)
                 # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
                 features_A  = primary_adapter['model'](data['primary'].to(device))
 
