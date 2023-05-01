@@ -82,9 +82,10 @@ class PsKeyposeDataset():
         A = deal(A)
         B = deal(B)
         # regular
-        # B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
-        # A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
-        A, B = rs(A, resize_method=self.inter), rs(B, resize_method=self.inter)
+        
+        B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
+        A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
+        A, B = rs(A, resize_method=Inter[self.inter]), rs(B, resize_method=Inter[self.inter])
 
         # B first
         # down sample and resize
@@ -103,7 +104,7 @@ class PsKeyposeDataset():
         assert A.shape==B.shape, 'here!!!'
         A = rearrange(A, 'u v w -> w u v')
         B = rearrange(B, 'u v w -> w u v')
-        print(A.shape, B.shape)
+        # print(A.shape, B.shape)
         return {
             'primary': A,
             'secondary': B,
