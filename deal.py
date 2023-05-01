@@ -45,6 +45,19 @@ def parser_args():
         help='embedding nums'
     )
     parser.add_argument(
+        "--caption_model",
+        type=str,
+        default='vit-gpt2',
+        choices=['vit-gpt2'],
+        help='which image caption model to be used'
+    )
+    parser.add_argument(
+        "--imcp_path",
+        type=str,
+        default='',
+        help='model basic path of image captioning model (vit-gpt2-image-captioning)'
+    )
+    parser.add_argument(
         "--image",
         type=str,
         default='Datasets/Data',
@@ -84,7 +97,7 @@ def parser_args():
         "--inter",
         type=str,
         default='inter_cubic',
-        choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
+        choices=['inter_cubic', 'inter_linear', 'inter_nearest', 'inter_lanczos4'],
         help='resize shape'
     )
     parser.add_argument(
@@ -116,11 +129,13 @@ def caption_step(opt):
     file = open(csv_output, "w", newline="")
     writer = csv.writer(file)
     writer.writerow(['CAPTIONS'])
-
-    caption_model = VisionEncoderDecoderModel.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
+    
+    opt.imcp_path = opt.imcp_path if opt.imcp_path.endswith('/') or opt.imcp_path=='' else opt.imcp_path + '/'
+    version = opt.imcp_path + "nlpconnct/vit-gpt2-image-captioning"
+    caption_model = VisionEncoderDecoderModel.from_pretrained(version)
     caption_model.to(device)
-    feature_extractor = ViTImageProcessor.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
-    tokenizer = AutoTokenizer.from_pretrained("nlpconnct/vit-gpt2-image-captioning")
+    feature_extractor = ViTImageProcessor.from_pretrained(version)
+    tokenizer = AutoTokenizer.from_pretrained(version)
 
     def get_bit(num: int) -> int:
         c = 0

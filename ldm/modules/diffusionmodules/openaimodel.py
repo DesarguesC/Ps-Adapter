@@ -553,6 +553,8 @@ class UNetModel(nn.Module):
                 )
             ]
         )
+        
+        
         self._feature_size = model_channels
         input_block_chans = [model_channels]
         ch = model_channels
