@@ -293,7 +293,7 @@ def main():
 
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
-    # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
+    Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
     # hyper-parameters remained to be adjust
 
 

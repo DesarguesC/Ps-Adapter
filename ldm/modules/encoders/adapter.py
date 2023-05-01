@@ -120,7 +120,8 @@ class Adapter(nn.Module):
         x = self.conv_in(x)
         for i in range(len(self.channels)):
             for j in range(self.nums_rb):
-                idx = i * self.nums_rb + j
+                idx = i * self.nums_rb\
+                      + j
                 x = self.body[idx](x)
             features.append(x)
 
