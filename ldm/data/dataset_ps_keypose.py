@@ -7,7 +7,7 @@ import numpy as np
 import os
 from basicsr.utils import img2tensor
 from random import randint, shuffle
-from ldm.util import resize_numpy_image
+from ldm.util import resize_numpy_image as rs
 from einops import rearrange
 
 Inter = {
@@ -68,7 +68,7 @@ class PsKeyposeDataset():
         
         A = cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary'])
         w, h, _ = A.shape
-        self.shape = (w//factor, h//factor)
+        self.shape = (w // factor, h // factor)
         
         
 
@@ -82,8 +82,10 @@ class PsKeyposeDataset():
         A = deal(A)
         B = deal(B)
         # regular
-        B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
-        A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
+        # B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
+        # A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
+        A, B = rs(A, resize_method=self.inter), rs(B, resize_method=self.inter)
+
         # B first
         # down sample and resize
         
