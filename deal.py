@@ -185,8 +185,13 @@ def caption_step(opt):
         writer.writerow(preds)
 
         # img = image_paths + image
+        print(image.shape)
 
+<<<<<<< HEAD
         openpose_keypose = resize_numpy_image(img, max_resolution=(opt.resolution_size - opt.factor * 64)**2)
+=======
+        openpose_keypose = resize_numpy_image(img, max_resolution=(opt.resolution_size - opt.factor * 64)**2, resize_method=Inter[opt.inter])
+>>>>>>> 5a87a6e3386416d21a0ec7f597c9ebb27521ea09
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
             rename = name(cnt)
