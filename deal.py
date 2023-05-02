@@ -131,7 +131,7 @@ def caption_step(opt):
     writer.writerow(['CAPTIONS'])
     
     opt.imcp_path = opt.imcp_path if opt.imcp_path.endswith('/') or opt.imcp_path=='' else opt.imcp_path + '/'
-    version = opt.imcp_path + "nlpconnct/vit-gpt2-image-captioning"
+    version = opt.imcp_path + "nlpconnect/vit-gpt2-image-captioning"
     caption_model = VisionEncoderDecoderModel.from_pretrained(version)
     caption_model.to(device)
     feature_extractor = ViTImageProcessor.from_pretrained(version)
