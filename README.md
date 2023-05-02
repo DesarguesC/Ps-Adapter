@@ -60,6 +60,13 @@ After that, run
 cd ..
 python deal.py --length max_length --beams num_beams --random_num
 ```
+or
+```bat
+python recaption.py --length 77 --beams 10 --image ~/autodl-tmp/self/Datasets/mpii/images --outdir_captions ~/autodl-tmp/Data/resaption/Captions/ --oiutdir_keypose ~/autodl-tmp/Data/resaption/Keypose/
+```
+
+
+
 to get captions and kepose images. Here, "max_length" and "num_beams" are parameters from [nlpconnect/vit-gpt2-image-captioning](https://huggingface.co/nlpconnect/vit-gpt2-image-captioning) program. So, make sure vit-gpt2 model has been installed.
 
 
