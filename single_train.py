@@ -125,7 +125,7 @@ def parsr_args():
     parser.add_argument(
         "--name",
         type=str,
-        default="train_ps_keypose",
+        default="single_ps_keypose",
         help="experiment name",
     )
     parser.add_argument(

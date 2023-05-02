@@ -71,7 +71,7 @@ class FrozenT5Embedder(AbstractEncoder):
 
 class FrozenCLIPEmbedder(AbstractEncoder):
     """Uses the CLIP transformer encoder for text (from huggingface)"""
-    def __init__(self, version="../autodl-tmp/openai/clip-vit-large-patch14", device="cuda", max_length=77,
+    def __init__(self, version="../autodl-tmp/openai/clip-vit-large-patch14/", device="cuda", max_length=77, local_files_only=True,
                  freeze=True, layer="last"):  # clip-vit-base-patch32
         super().__init__()
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
@@ -167,7 +167,7 @@ class FrozenOpenCLIPEmbedder(AbstractEncoder):
 
 
 class FrozenCLIPT5Encoder(AbstractEncoder):
-    def __init__(self, clip_version="openai/clip-vit-large-patch14", t5_version="google/t5-v1_1-xl", device="cuda",
+    def __init__(self, clip_version="../autodl-tmp/openai/clip-vit-large-patch14", t5_version="google/t5-v1_1-xl", device="cuda",
                  clip_max_length=77, t5_max_length=77):
         super().__init__()
         self.clip_encoder = FrozenCLIPEmbedder(clip_version, device, max_length=clip_max_length)
@@ -289,7 +289,7 @@ def parse_prompt_attention(text):
     return res
 
 class WebUIFrozenCLIPEmebedder(AbstractEncoder):
-    def __init__(self, version="openai/clip-vit-large-patch14", device="cuda", freeze=True, layer="penultimate"):
+    def __init__(self, version="../autodl-tmp/openai/clip-vit-large-patch14", device="cuda", freeze=True, layer="penultimate"):
         super(WebUIFrozenCLIPEmebedder, self).__init__()
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.transformer = CLIPModel.from_pretrained(version).text_model
