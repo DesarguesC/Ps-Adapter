@@ -164,7 +164,8 @@ def caption_step(opt):
         if one in index:
             continue
         index.append(one)
-        listdir.append(lists[one])
+        if lists[one].endswith('.jpg'):
+            listdir.append(lists[one])
 
     print('caption max number: ', opt.length)
     print('Dealing...')

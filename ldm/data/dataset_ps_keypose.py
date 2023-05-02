@@ -46,7 +46,7 @@ class PsKeyposeDataset():
 
         image_list= os.listdir(keypose_path)
         length = len(image_list)
-        assert length == len(prompt_list), 'Data preprocessing wrong.'
+        assert length == len(prompt_list), 'Data preprocessing wrong. image_num: {0}, prompt_num: {1}'.format(length, len(prompt_list))
 
         # image: OpenKeypose image
 
