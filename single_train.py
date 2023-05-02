@@ -153,12 +153,6 @@ def parsr_args():
         help="latent channels",
     )
     parser.add_argument(
-        "--f",
-        type=int,
-        default=8,
-        help="downsampling factor",
-    )
-    parser.add_argument(
         "--steps",
         type=int,
         default=50,
@@ -272,8 +266,9 @@ def main():
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
-    SHAPE = train_dataset.shape
-    max_resolution = SHAPE[0] * SHAPE[1]
+    opt.H, opt.W = train_dataset.item_shape
+    print('base shape: ', (opt.W, opt.H))
+    max_resolution = opt.W * opt.H
     setattr(opt, 'max_resolution', max_resolution)
     setattr(opt, 'resize_short_edge', None)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)

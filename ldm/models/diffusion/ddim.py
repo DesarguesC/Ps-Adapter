@@ -179,6 +179,9 @@ class DDIMSampler(object):
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None, features_adapter=None,
                       append_to_context=None):
+        
+        # print('ddim x.shape = ', x.shape)      # amend
+        
         b, *_, device = *x.shape, x.device
 
         if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
@@ -216,6 +219,9 @@ class DDIMSampler(object):
                     c_in = torch.cat([new_unconditional_conditioning, new_c])
                 else:
                     c_in = torch.cat([unconditional_conditioning, c])
+                    
+            # print('ddim: x_in.shape = ', x_in.shape)    # amend
+            
             model_uncond, model_t = self.model.apply_model(x_in, t_in, c_in, features_adapter=features_adapter).chunk(2)
             model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
 

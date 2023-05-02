@@ -36,6 +36,7 @@ class PsKeyposeDataset():
         self.resize = resize
         self.inter = interpolation
         self.factor = factor
+        self.item_shape = (512, 512)
         
 
         super(PsKeyposeDataset, self).__init__()
@@ -67,8 +68,10 @@ class PsKeyposeDataset():
         shuffle(self.files)
         
         A = cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary'])
-        w, h, _ = A.shape
-        self.shape = (w // factor, h // factor)
+        h, w, _ = A.shape
+        self.item_shape = (h // factor, w // factor)
+        
+        
         
         
 
@@ -83,9 +86,11 @@ class PsKeyposeDataset():
         B = deal(B)
         # regular
         
-        B = cv2.resize(B, self.shape, interpolation=Inter[self.inter])
-        A = cv2.resize(A, self.shape, interpolation=Inter[self.inter])
-        A, B = rs(A, resize_method=Inter[self.inter]), rs(B, resize_method=Inter[self.inter])
+        h, w = self.item_shape
+        h, w = h // self.factor, w // self.factor
+        B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
+        A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
+        # A, B = rs(A, resize_method=Inter[self.inter]), rs(B, resize_method=Inter[self.inter])
 
         # B first
         # down sample and resize

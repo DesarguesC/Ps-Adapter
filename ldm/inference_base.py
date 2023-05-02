@@ -300,13 +300,16 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
     if not hasattr(opt, 'H'):
         opt.H = 512
         opt.W = 512
-    shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+        print('no------'*10)
+    shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]
+    # print('base shape in inference: ', shape)
+    assert (opt.bsize//2)*2 == opt.bsize, 'improper batch size set'
 
     # PLMSSampler
     *_, ratios, samples = sampler.sample(
         S=opt.steps,
         conditioning=c,
-        batch_size=1,
+        batch_size=opt.bsize//2,
         shape=shape,
         verbose=False,
         unconditional_guidance_scale=opt.scale,

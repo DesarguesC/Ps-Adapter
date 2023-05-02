@@ -182,9 +182,11 @@ class CrossAttention(nn.Module):
                 q, k = q.float(), k.float()
                 # print('q.shape={0}, k.shape={1}'.format(q.shape, k.shape))
                 
-                sim = einsum('b i d, k j d -> b i j', q, k) * self.scale
+                #sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+                sim = einsum('b i d, k j d -> b i j', q, k) * self.scale   # amend-1
         else:
-            sim = einsum('b i d, k j d -> b i j', q, k) * self.scale
+            #sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+            sim = einsum('b i d, k j d -> b i j', q, k) * self.scale       # amend-2
 
         del q, k
 
@@ -196,8 +198,11 @@ class CrossAttention(nn.Module):
 
         # attention, what we cannot get enough of
         sim = sim.softmax(dim=-1)
-        print('sim.shape={0}, v.shape={1}'.format(sim.shape, v.shape))
-        out = einsum('b i j, k j d -> b i d', sim, v)
+        # print('sim.shape={0}, v.shape={1}'.format(sim.shape, v.shape))
+        
+        #out = einsum('b i j, b j d -> b i d', sim, v)
+        out = einsum('b i j, k j d -> b i d', sim, v)       # amend-3
+        
         out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
         return self.to_out(out)
 
