@@ -9,6 +9,7 @@ import torch
 from basicsr.utils import img2tensor
 from PIL import Image
 
+
 Inter = {
     'inter_cubic': cv2.INTER_CUBIC,
     'inter_linear': cv2.INTER_LINEAR,
@@ -54,7 +55,7 @@ def parser_args():
     parser.add_argument(
         "--imcp_path",
         type=str,
-        default='',
+        default="nlpconnect/vit-gpt2-image-captioning",
         help='model basic path of image captioning model (vit-gpt2-image-captioning)'
     )
     parser.add_argument(
@@ -76,9 +77,9 @@ def parser_args():
         help='output directions for keypose'
     )
     parser.add_argument(
-        "--resolution",
+        "--resolution_size",
         type=int,
-        default=512*512,
+        default=512,
         help='for resize'
     )
     parser.add_argument(
@@ -90,7 +91,7 @@ def parser_args():
     parser.add_argument(
         "--resize",
         type=str2bool,
-        default=False,
+        default=True,
         help='ensure images the same shape'
     )
     parser.add_argument(
@@ -103,8 +104,8 @@ def parser_args():
     parser.add_argument(
         "--factor",
         type=int,
-        default=4,
-        help='download factor'
+        default=1,
+        help='download factor, here we use to adjust resolution (dividable to 64)'
     )
     opt = parser.parse_args()
     return opt
@@ -129,14 +130,14 @@ def caption_step(opt):
     file = open(csv_output, "w", newline="")
     writer = csv.writer(file)
     writer.writerow(['CAPTIONS'])
-    
-    opt.imcp_path = opt.imcp_path if opt.imcp_path.endswith('/') or opt.imcp_path=='' else opt.imcp_path + '/'
-    version = opt.imcp_path + "nlpconnect/vit-gpt2-image-captioning"
+
+    version = opt.imcp_path
     caption_model = VisionEncoderDecoderModel.from_pretrained(version)
     caption_model.to(device)
     feature_extractor = ViTImageProcessor.from_pretrained(version)
     tokenizer = AutoTokenizer.from_pretrained(version)
 
+    # rename images
     def get_bit(num: int) -> int:
         c = 0
         while not num == 0:
@@ -154,7 +155,7 @@ def caption_step(opt):
     cnt = 0
 
     index, listdir = [], []
-    lists = os.listdir(opt.image)
+    lists = os.listdir(image_paths)
 
     print('Data Choosing...')
     from random import randint
@@ -171,9 +172,10 @@ def caption_step(opt):
     for image in listdir:
         # image in name list; image ->
         print("captionning and estimating: ", image)
-        img = Image.open(opt.image + image)
+        img = Image.open(image_paths + image)
         if not img.mode == 'RGB':
             img = img.convert(mode='RGB')
+        # image captioning
         with torch.autocast('cuda', dtype=torch.float32):
             pixel_values = feature_extractor(images=[img], return_tensors="pt").pixel_values
             pixel_values = pixel_values.to(device)
@@ -182,14 +184,13 @@ def caption_step(opt):
             preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
         writer.writerow(preds)
 
-        img = cv2.imread('{0}/{1}'.format(image_paths, image))
+        # img = image_paths + image
 
-
-        openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution)
+        openpose_keypose = resize_numpy_image(img, max_resolution=(opt.resolution - opt.factor * 64)**2)
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
             rename = name(cnt)
-            cv2.imwrite('{0}/{1}'.format(opt.outdir_keypose, rename), openpose_keypose)
+            cv2.imwrite(keypose_output + rename, openpose_keypose)
         cnt += 1
 
     file.close()
