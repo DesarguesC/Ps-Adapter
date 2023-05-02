@@ -97,7 +97,7 @@ class ResnetBlock(nn.Module):
 class Adapter(nn.Module):
     def __init__(self, channels=[320, 640, 1280, 1280], nums_rb=3, cin=64, ksize=3, sk=False, use_conv=True):
         super(Adapter, self).__init__()
-        self.unshuffle = nn.PixelUnshuffle(8)
+        self.unshuffle = nn.PixelUnshuffle(8)     # amend ?
         self.channels = channels
         self.nums_rb = nums_rb
         self.body = []

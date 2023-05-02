@@ -77,9 +77,9 @@ def parser_args():
         help='output directions for keypose'
     )
     parser.add_argument(
-        "--resolution_size",
+        "--resolution",
         type=int,
-        default=512,
+        default=512*512,
         help='for resize'
     )
     parser.add_argument(
@@ -100,12 +100,6 @@ def parser_args():
         default='inter_cubic',
         choices=['inter_cubic', 'inter_linear', 'inter_nearest', 'inter_lanczos4'],
         help='resize shape'
-    )
-    parser.add_argument(
-        "--factor",
-        type=int,
-        default=1,
-        help='download factor, here we use to adjust resolution (dividable to 64)'
     )
     opt = parser.parse_args()
     return opt
@@ -186,7 +180,7 @@ def caption_step(opt):
         writer.writerow(preds)
 
         img = cv2.imread(image_paths + image)
-        openpose_keypose = resize_numpy_image(img, max_resolution=(opt.resolution_size - opt.factor * 64)**2, resize_method=Inter[opt.inter])
+        openpose_keypose = resize_numpy_image(img, max_resolution=opt.resolution, resize_method=Inter[opt.inter])
         with torch.autocast('cuda', dtype=torch.float32):
             openpose_keypose = pose_model(openpose_keypose)
             rename = name(cnt)
