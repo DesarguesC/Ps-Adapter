@@ -301,8 +301,9 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         opt.H = 512
         opt.W = 512
         print('no------'*10)
-    shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]
-    # print('base shape in inference: ', shape)
+    # shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]
+    shape = [opt.C, opt.H, opt.W]    # already downsampled
+    print('base shape in inference: ', shape)
     assert (opt.bsize//2)*2 == opt.bsize, 'improper batch size set'
 
     # PLMSSampler

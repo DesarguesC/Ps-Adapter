@@ -267,7 +267,7 @@ def main():
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
     opt.H, opt.W = train_dataset.item_shape
-    print('base shape: ', (opt.W, opt.H))
+    print('base shape: ', (opt.H, opt.W))
     max_resolution = opt.W * opt.H
     setattr(opt, 'max_resolution', max_resolution)
     setattr(opt, 'resize_short_edge', None)
@@ -278,11 +278,7 @@ def main():
         shuffle=True)
 
     # Stable-Diffusion Model
-
-    # print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
-
     model, sampler = get_sd_models(opt)
-    # Two Adapters
 
     print('loading adapters from {0}'.format(opt.adapter_ori))
 
@@ -343,12 +339,14 @@ def main():
                 c = model.get_learned_conditioning(data['prompt'])
                 # CLIP
                 
-                A_0 = tensor2img(model_reflect('primary'))
+                # A_0 = tensor2img(model_reflect('primary'))
                 B_0 = tensor2img(model_reflect('secondary'))
                 
                 # print(type(B_0))
                 
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
+                print('data[...].shape = ', data['secondary'].shape)
+                print('B_0.shape = ', B_0.shape)
                 print('const_B.shape = ', const_B.shape)
                 # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
                 features_A  = primary_adapter['model'](data['primary'].to(device))

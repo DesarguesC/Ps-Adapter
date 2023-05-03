@@ -244,10 +244,7 @@ def get_cond_openpose(opt, cond_image, cond_inp_type='image', cond_model=None):
 
     else:
         raise NotImplementedError
-    print(type(openpose_keypose))
-    print(openpose_keypose.shape)
-    # 1 * 3 * 768 * resolution
-
+        
     return openpose_keypose
 
 
