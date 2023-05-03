@@ -4,18 +4,31 @@ import os
 import os.path as osp
 import torch
 from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
-                           scandir)
+                           scandir, tensor2img)
+
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
-
+import time
 from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
 from ldm.modules.encoders.adapter import Adapter
 from ldm.util import load_model_from_config
 
-from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser, get_sd_models)
+from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser,
+                                get_sd_models)
 from ldm.modules.extra_condition import api
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 @master_only
@@ -140,13 +153,7 @@ def parsr_args():
         help="latent channels",
     )
     parser.add_argument(
-        "--f",
-        type=int,
-        default=8,
-        help="downsampling factor",
-    )
-    parser.add_argument(
-        "--sample_steps",
+        "--steps",
         type=int,
         default=50,
         help="number of ddim sampling steps",
@@ -162,6 +169,13 @@ def parsr_args():
         type=float,
         default=7.5,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
+    )
+    parser.add_argument(
+        '--cond_tau',
+        type=float,
+        default=1.0,
+        help='timestamp parameter that determines until which step the adapter is applied, '
+             'similar as Prompt-to-Prompt tau'
     )
     parser.add_argument(
         "--gpus",
@@ -218,7 +232,25 @@ def parsr_args():
         choices=['ddim', 'plms'],
         help='sampling algorithm, currently, only ddim and plms are supported, more are on the way',
     )
-    
+    parser.add_argument(
+        '--resize',
+        type=str2bool,
+        default=False,
+        help='resize image shape'
+    )
+    parser.add_argument(
+        "--inter",
+        type=str,
+        default='inter_cubic',
+        choices=['inter_cubic', 'inter_liinear', 'inter_nearest', 'inter_lanczos4'],
+        help='resize shape'
+    )
+    parser.add_argument(
+        "--factor",
+        type=int,
+        default=8,
+        help='download sample factor'
+    )
 
 
     opt = parser.parse_args()
@@ -242,12 +274,18 @@ def main():
     torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
-    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
+    opt.H, opt.W = train_dataset.item_shape
+    print('base shape: ', (opt.H, opt.W))
+    max_resolution = opt.W * opt.H
+    setattr(opt, 'max_resolution', max_resolution)
+    setattr(opt, 'resize_short_edge', None)
+
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.bsize,
-        shuffle=(train_sampler is None),
+        shuffle= True,    # (train_sampler is None),    ???
         num_workers=opt.num_workers,
         pin_memory=True,
         sampler=train_sampler)
@@ -255,16 +293,16 @@ def main():
     # Stable-Diffusion Model
     
     print('loading stable-diffusion model from {0}'.format(opt.sd_ckpt))
-    
+
+    # sd model
     model, sampler = get_sd_models(opt)
-    # Two Adapters
     
     print('loading adapters from {0}'.format(opt.adapter_ori))
     
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
-        # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
-        # hyper-parameters remained to be adjust
+    # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
+    # hyper-parameters remained to be adjust
 
     model = torch.nn.parallel.DistributedDataParallel(
         model,
@@ -279,7 +317,7 @@ def main():
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
 
-    params = list(secondary_adapter['model'].parameters())
+    params = list(secondary_adapter.module['model'].parameters())
     optimizer = torch.optim.AdamW(params, lr=config['training']['lr'])
 
     experiments_root = osp.join('experiments', opt.name)
@@ -316,30 +354,38 @@ def main():
 
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
-    model_reflect = lambda x: model.module.get_first_stage_encoding(model.module.encode_first_stage((data[x]*2-1).to(device)))
+    model_reflect = lambda x: model.module.get_first_stage_encoding(    # ???
+        model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
     for epoch in range(start_epoch, opt.epochs):
         train_dataloader.sampler.set_epoch(epoch)
+        epoch_start_time = time.time()
         # train
         for _, data in enumerate(train_dataloader):
             current_iter += 1
             with torch.no_grad():
                 c = model.module.get_learned_conditioning(data['prompt'])
-                A_0 = model_reflect('img_1')
-                B_0 = model_reflect('img_2')
-                const_B = get_cond_openpose(B_0)        # 实际上不需要图片只需要openpose
-                features_A, context_A = primary_adapter['model'](data['primary'].to(device))
+                # CLIP
+
+                B_0 = tensor2img(model_reflect('secondary'))
+                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')
+                # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
+
+                # debug
+                print('data[...].shape = ', data['secondary'].shape)
+                print('B_0.shape = ', B_0.shape)
+                print('const_B.shape = ', const_B.shape)
 
                 # already went through 'img2tensor'
-
-                samples_A, _ = train_inference(opt, model, sampler, features_A, get_cond_openpose, context_A)
+                features_A = primary_adapter['model'](data['primary'].to(device))
+                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose)
 
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
 
 
-            features_B, append_B = secondary_adapter.module(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, append_B)
+            features_B= secondary_adapter.module(data['secondary'].to(device))
+            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
 
             u = (samples_B - const_B) ** 2
             v = (samples_B - samples_A) ** 2
@@ -350,6 +396,8 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
+
+            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Expectation))
 
             Expectation.backward()
             optimizer.step()

@@ -284,7 +284,7 @@ def main():
 
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
-    Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
+    # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
     # hyper-parameters remained to be adjust
 
 
@@ -332,8 +332,6 @@ def main():
         epoch_start_time = time.time()
         # train
         for _, data in enumerate(train_dataloader):
-            # print(type(data))
-            # print(data)
             current_iter += 1
             with torch.no_grad():
                 c = model.get_learned_conditioning(data['prompt'])
@@ -373,12 +371,10 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
 
-            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Exception))
+            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Expectation))
 
             Expectation.backward()
             optimizer.step()
-            
-            
 
             if (current_iter + 1) % opt.print_fq == 0:
                 logger.info(loss_dict)

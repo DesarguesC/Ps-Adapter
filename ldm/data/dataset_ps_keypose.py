@@ -87,7 +87,8 @@ class PsKeyposeDataset():
         # regular
         
         h, w = self.item_shape
-        h, w = h // self.factor, w // self.factor
+        if self.resize:
+            h, w = h // self.factor, w // self.factor
         B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
         A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
         # A, B = rs(A, resize_method=Inter[self.inter]), rs(B, resize_method=Inter[self.inter])
