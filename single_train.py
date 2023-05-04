@@ -267,7 +267,7 @@ def main():
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
     opt.H, opt.W = train_dataset.item_shape
-    print('base shape: ', (opt.H, opt.W))
+    # print('base shape: ', (opt.H, opt.W))
     max_resolution = opt.W * opt.H
     setattr(opt, 'max_resolution', max_resolution)
     setattr(opt, 'resize_short_edge', None)

@@ -177,6 +177,7 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
 
 
 def resize_numpy_image(image, max_resolution=512 * 512, resize_short_edge=None, resize_method=cv2.INTER_LANCZOS4):
+    max_resolution = 64 * 64
     h, w = image.shape[:2]
     if resize_short_edge is not None:
         k = resize_short_edge / min(h, w)
