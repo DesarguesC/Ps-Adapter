@@ -82,7 +82,7 @@ class DDIMSampler(object):
                ):
 
         loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
-        print(f'loss_mode = {loss_mode}')
+        # print(f'loss_mode = {loss_mode}')
 
         if conditioning is not None:
             if isinstance(conditioning, dict):
