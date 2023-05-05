@@ -28,7 +28,7 @@ def deal(Input):
 
 
 class PsKeyposeDataset():
-    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic", factor=1):
+    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic", factor=1, max_resolution=512*512):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
         self.caption_path = caption_path
@@ -37,6 +37,7 @@ class PsKeyposeDataset():
         self.inter = interpolation
         self.factor = factor
         self.item_shape = (512, 512)
+        self.max_resolution = max_resolution
         
 
         super(PsKeyposeDataset, self).__init__()
@@ -67,7 +68,7 @@ class PsKeyposeDataset():
                     })
         shuffle(self.files)
         
-        A = cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary'])
+        A = rs(cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary']), max_resolution=self.max_resolution, resize_method=Inter[self.inter])
         h, w, _ = A.shape
         self.item_shape = (h // factor, w // factor)
         
@@ -89,29 +90,26 @@ class PsKeyposeDataset():
         h, w = self.item_shape
         if self.resize:
             h, w = h // self.factor, w // self.factor
-            
-        h, w = 64, 64
+
         print('base shape = ', (h,w))
             
-        B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
-        A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
-        # A, B = rs(A, resize_method=Inter[self.inter]), rs(B, resize_method=Inter[self.inter])
+        # B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
+        # A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
+        A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
 
         # B first
         # down sample and resize
         
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
-        
-        # if not A.shape == B.shape:
-        #     B = rearrange(B, 'u v w -> v u w')
+
         prompt = file['prompt'].strip()
         # print('one group')
         
-        assert A.shape==B.shape, 'here...'
+        assert A.shape == B.shape, 'here...'
         # print(type(A))
         A = read_img(A)
         B = read_img(B)    
-        assert A.shape==B.shape, 'here!!!'
+        assert A.shape == B.shape, 'here!!!'
         A = rearrange(A, 'u v w -> w u v')
         B = rearrange(B, 'u v w -> w u v')
         # print(A.shape, B.shape)

@@ -239,6 +239,12 @@ def parsr_args():
         default=8,
         help='download sample factor'
     )
+    parser.add_argument(
+        "--max_resolution",
+        type=int,
+        default=512 * 512,
+        help='quality of generated image'
+    )
 
 
     opt = parser.parse_args()
@@ -265,11 +271,10 @@ def main():
     # torch.cuda.set_device(opt.local_rank)
 
     print('reading datasets...')
-    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize,\
+                                     interpolation=opt.inter, factor=opt.factor, max_resolution=opt.max_resolution)
     opt.H, opt.W = train_dataset.item_shape
-    # print('base shape: ', (opt.H, opt.W))
-    max_resolution = opt.W * opt.H
-    setattr(opt, 'max_resolution', max_resolution)
+    # downloaded: H, W
     setattr(opt, 'resize_short_edge', None)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
@@ -340,13 +345,13 @@ def main():
                 # A_0 = tensor2img(model_reflect('primary'))
                 B_0 = tensor2img(model_reflect('secondary'))
                 
-                # print(type(B_0))
-                
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
                 print('data[...].shape = ', data['secondary'].shape)
                 print('B_0.shape = ', B_0.shape)
                 print('const_B.shape = ', const_B.shape)
-                # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
+
+                assert const_B.shape[0] == opt.H * opt.factor or const_B.shape[1] == opt.W * opt.factor
+
                 features_A  = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
@@ -366,7 +371,7 @@ def main():
             Expectation = 2 * rates(ratios) * u.sum() + v.sum()
 
             loss_dict = {}
-            log_prefix = 'Ps-Adapter-train'
+            log_prefix = 'Ps-Adapter-single-train'
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
