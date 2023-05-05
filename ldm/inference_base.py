@@ -284,7 +284,7 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
     return x_samples
 
 
-def train_inference(opt, c, model, sampler, adapter_features, cond_model, loss_mode=True, append_to_context=None):
+def train_inference(opt, c, model, sampler, adapter_features, cond_model=None, loss_mode=True, append_to_context=None):
     # # openpose
     # from ldm.modules.extra_condition.openpose.api import OpenposeInference
     # embed_model = OpenposeInference().to(opt.device)

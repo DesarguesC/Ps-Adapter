@@ -13,10 +13,10 @@ from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
 from ldm.modules.encoders.adapter import Adapter
 from ldm.util import load_model_from_config
-
+from ldm.modules.extra_condition.openpose.api import OpenposeInference
 from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser,
                                 get_sd_models)
-from ldm.modules.extra_condition import api
+
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
 
 
@@ -262,6 +262,12 @@ def parsr_args():
         default=512 * 512,
         help='quality of generated image'
     )
+    parser.add_argument(
+        "--imcp_path",
+        type=str,
+        default="nlpconnect/vit-gpt2-image-captioning",
+        help='model basic path of image captioning model (vit-gpt2-image-captioning)'
+    )
 
 
     opt = parser.parse_args()
@@ -354,6 +360,11 @@ def main():
         # train_dataloader.sampler.set_epoch(epoch)
         epoch_start_time = time.time()
         # train
+
+        cond_model = OpenposeInference().to(device)
+
+
+
         for _, data in enumerate(train_dataloader):
             current_iter += 1
             with torch.no_grad():
@@ -361,23 +372,22 @@ def main():
                 # CLIP
                 
                 B_0 = tensor2img(model_reflect('secondary'))
-                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
-                # print('data[...].shape = ', data['secondary'].shape)
-                # print('B_0.shape = ', B_0.shape)
-                # print('const_B.shape = ', const_B.shape)
+                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose, already a openpose image
 
                 features_A  = primary_adapter['model'](data['primary'].to(device))
 
                 # already went through 'img2tensor'
+
+
                 
-                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose, loss_mode=True)
+                samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
 
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
 
             features_B = secondary_adapter(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, loss_mode=True)
+            samples_B, ratios = train_inference(opt, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
 
             u = (samples_B - const_B) ** 2
             v = (samples_B - samples_A) ** 2
