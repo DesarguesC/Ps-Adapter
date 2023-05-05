@@ -12,6 +12,13 @@ from inspect import isfunction
 from PIL import Image, ImageDraw, ImageFont
 
 
+Inter = {
+    'inter_cubic': cv2.INTER_CUBIC,
+    'inter_linear': cv2.INTER_LINEAR,
+    'inter_nearest': cv2.INTER_NEAREST,
+    'inter_lanczos4': cv2.INTER_LANCZOS4
+}
+
 def log_txt_as_img(wh, xc, size=10):
     # wh a tuple of (width, height)
     # xc a list of captions to plot
@@ -174,6 +181,17 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
     model.cuda()
     model.eval()
     return model
+
+def resize_tensor_image(A, B, inter):
+    # resize A as B
+    assert isinstance(A, torch.tensor)
+    assert isinstance(B, torch.tensor)
+    h, w, _ = B.shape
+    A = cv2.resize(A, (h,w), interpolation=Inter[inter])
+    assert A.shape == B.shape, 'Resize Failed'
+    return A, B
+
+
 
 
 def resize_numpy_image(image, max_resolution=512 * 512, resize_short_edge=None, resize_method=cv2.INTER_LANCZOS4):

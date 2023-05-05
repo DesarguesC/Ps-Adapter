@@ -365,13 +365,11 @@ def main():
                 # CLIP
                 
                 B_0 = tensor2img(model_reflect('secondary'))
+                print('B_0.shape = ', B_0.shape)
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose, already a openpose image
-
+                print('const_B.shape = ', const_B.shape)
+                # B_0.shape = const_B.shape !
                 features_A  = primary_adapter['model'](data['primary'].to(device))
-
-                # already went through 'img2tensor'
-
-
                 
                 samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
 
@@ -389,8 +387,12 @@ def main():
             print('\n')
             print(const_B.shape)
             for i in range(len(samples_A)):
-                u += (torch.from_numpy(samples_B[i]) - const_B) ** 2
-                v += (torch.from_numpy(samples_B[i]) - samples_A[i]) ** 2
+                from ldm.util import resize_tensor_image as rs
+                B = torch.from_numpy(samples_B[i]).squeeze()
+                A = torch.form_numpy(samples_A[i]).squeeze()
+                const_B, _ = rs(const_B, B, inter=opt.inter)
+                u += (B - const_B) ** 2
+                v += (B - A) ** 2
                 
             print(u.shape, v.shape)
                 
