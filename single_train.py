@@ -262,13 +262,6 @@ def parsr_args():
         default=512 * 512,
         help='quality of generated image'
     )
-    parser.add_argument(
-        "--imcp_path",
-        type=str,
-        default="nlpconnect/vit-gpt2-image-captioning",
-        help='model basic path of image captioning model (vit-gpt2-image-captioning)'
-    )
-
 
     opt = parser.parse_args()
     return opt
