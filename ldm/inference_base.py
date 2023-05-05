@@ -284,7 +284,7 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
     return x_samples
 
 
-def train_inference(opt, c, model, sampler, adapter_features, cond_model, append_to_context=None):
+def train_inference(opt, c, model, sampler, adapter_features, cond_model, loss_mode=True, append_to_context=None):
     # # openpose
     # from ldm.modules.extra_condition.openpose.api import OpenposeInference
     # embed_model = OpenposeInference().to(opt.device)
@@ -304,10 +304,10 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
     
     shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]    # fit the adapter feature
     # print('base shape in inference: ', shape)
-    assert (opt.bsize//2)*2 == opt.bsize, 'improper batch size set'
+    assert (opt.bsize//2)*2 == opt.bsize, 'bad batch size.'
 
-    # PLMSSampler
-    _, ratios, samples = sampler.sample(
+    # DDIMSampler
+    *_, ratios, samples = sampler.sample(
         S=opt.steps,
         conditioning=c,
         batch_size=opt.bsize//2,
@@ -319,15 +319,12 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         features_adapter=adapter_features,
         append_to_context=append_to_context,
         cond_tau=opt.cond_tau,
-        loss_mode=True,  # need to be trained
+        loss_mode=loss_mode,  # need to be trained
     )
-    assert len(ratios) == len(samples), 'Fatal: Something went wrong in plms'
+    assert samples != None, '?'
+    # print(len(ratios['alphas']), len(samples))
+    assert len(ratios['alphas']) == len(samples), 'Fatal: Something went wrong in plms'
     
-    print(type(samples))
-    print(samples.keys())
-    
-    assert isinstance(samples[0], torch.tensor), 'none'
-    print(samples[0].shape)
     for i in range(len(samples)):
         u = model.decode_first_stage(samples[i])
         samples[i] = cond_model(torch.clamp((u + 1.) / 2., min=0., max=1.))

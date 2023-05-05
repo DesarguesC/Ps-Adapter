@@ -82,6 +82,7 @@ class DDIMSampler(object):
                ):
 
         loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
+        print(f'loss_mode = {loss_mode}')
 
         if conditioning is not None:
             if isinstance(conditioning, dict):
@@ -119,11 +120,11 @@ class DDIMSampler(object):
                                                     use_original_steps=False
                                                     )
         if loss_mode:
-            samples, intermediates = output
-        else:
             samples, intermediates, samples_list = output
+        else:
+            samples, intermediates, _ = output
 
-        use_original_steps = kwargs['use_original_steps'] if 'use_original_steps' in kwargs else False
+        use_original_steps = False
         alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
         alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
         sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
@@ -146,7 +147,8 @@ class DDIMSampler(object):
 
         is_train = kwargs['is_train'] if 'is_train' in kwargs else False
         model = kwargs['model'] if 'model' in kwargs else None
-        assert is_train and model is not None or not is_train and model is None, 'Fatal: Invalid inputs of loss_mode and use_model.'
+        
+        # assert is_train and model is not None or not is_train and model is None, 'Fatal: Invalid inputs of loss_mode and use_model.'
 
         device = self.model.betas.device
         b = shape[0]

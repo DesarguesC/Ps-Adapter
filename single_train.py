@@ -302,7 +302,6 @@ def main():
 
     # Stable-Diffusion Model
     model, sampler = get_sd_models(opt)
-    print(f'sampler calss: {type(sampler)}')
 
     print('loading adapters from {0}'.format(opt.adapter_ori))
 
@@ -371,14 +370,14 @@ def main():
 
                 # already went through 'img2tensor'
                 
-                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose)
+                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose, loss_mode=True)
 
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
 
             features_B = secondary_adapter(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
+            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose, loss_mode=True)
 
             u = (samples_B - const_B) ** 2
             v = (samples_B - samples_A) ** 2
