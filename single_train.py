@@ -58,7 +58,11 @@ def str2int(v: str) -> int:
             re *= int(x)
         return re
     else:
-        raise RuntimeError('Unkonwn Exception.')
+        try:
+            v = int(v)
+            return v
+        except:
+            raise RuntimeError('Unkonwn Exception.')
         
 
 def load_resume_state(opt):
@@ -286,6 +290,7 @@ def main():
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize,\
                                      interpolation=opt.inter, factor=opt.factor, max_resolution=opt.max_resolution)
+    print('already get data with length: ', len(train_dataset))
     opt.H, opt.W = train_dataset.item_shape
     # downloaded: H, W
     setattr(opt, 'resize_short_edge', None)
@@ -355,15 +360,11 @@ def main():
                 c = model.get_learned_conditioning(data['prompt'])
                 # CLIP
                 
-                # A_0 = tensor2img(model_reflect('primary'))
                 B_0 = tensor2img(model_reflect('secondary'))
-                
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
-                print('data[...].shape = ', data['secondary'].shape)
-                print('B_0.shape = ', B_0.shape)
-                print('const_B.shape = ', const_B.shape)
-
-                # assert const_B.shape[0] == opt.H * opt.factor or const_B.shape[1] == opt.W * opt.factor, "op-wh = ({0}, {1})".format(opt.H, opt.W)
+                # print('data[...].shape = ', data['secondary'].shape)
+                # print('B_0.shape = ', B_0.shape)
+                # print('const_B.shape = ', const_B.shape)
 
                 features_A  = primary_adapter['model'](data['primary'].to(device))
 
@@ -375,7 +376,6 @@ def main():
             model.zero_grad()
             primary_adapter.zero_grad()
 
-            # features_B, append_B = secondary_adapter(data['secondary'].to(device))
             features_B = secondary_adapter(data['secondary'].to(device))
             samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
 

@@ -69,8 +69,12 @@ class PsKeyposeDataset():
         shuffle(self.files)
         
         A = rs(cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary']), max_resolution=self.max_resolution, resize_method=Inter[self.inter])
+        print('base data shape = ', A.shape)
         h, w, _ = A.shape
-        self.item_shape = (h // factor, w // factor)
+        
+        self.item_shape = h, w
+        
+        # self.item_shape = (64, 96)
         
         
         
@@ -88,17 +92,15 @@ class PsKeyposeDataset():
         # regular
         
         h, w = self.item_shape
-        if self.resize:
-            h, w = h // self.factor, w // self.factor
 
-        # print('base shape = ', (h,w))
-        if A.shape != B.shape:
-            print('inequal~\n{0}, {1}'.format(A.shape, B.shape))
+        # if A.shape != B.shape:
+        #    print('inequal~\n{0}, {1}'.format(A.shape, B.shape))
             
         B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
         A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
-        A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
-        print('after shape: ', A.shape)
+        # A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
+        
+        # print('after shape: ', A.shape)
 
         # B first
         # down sample and resize
