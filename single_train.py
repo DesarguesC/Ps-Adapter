@@ -302,6 +302,7 @@ def main():
 
     # Stable-Diffusion Model
     model, sampler = get_sd_models(opt)
+    print(f'sampler calss: {type(sampler)}')
 
     print('loading adapters from {0}'.format(opt.adapter_ori))
 

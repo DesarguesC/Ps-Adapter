@@ -307,7 +307,7 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
     assert (opt.bsize//2)*2 == opt.bsize, 'improper batch size set'
 
     # PLMSSampler
-    *_, ratios, samples = sampler.sample(
+    _, ratios, samples = sampler.sample(
         S=opt.steps,
         conditioning=c,
         batch_size=opt.bsize//2,
@@ -322,9 +322,13 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         loss_mode=True,  # need to be trained
     )
     assert len(ratios) == len(samples), 'Fatal: Something went wrong in plms'
-    print(samples[0])
+    
+    print(type(samples))
+    print(samples.keys())
+    
+    assert isinstance(samples[0], torch.tensor), 'none'
+    print(samples[0].shape)
     for i in range(len(samples)):
-        
         u = model.decode_first_stage(samples[i])
         samples[i] = cond_model(torch.clamp((u + 1.) / 2., min=0., max=1.))
 

@@ -89,6 +89,7 @@ class PLMSSampler(object):
         # exit(0)
         loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
         # use_model = kwargs['use_model'] if 'use_model' in kwargs else None
+        
 
         if conditioning is not None:
             if isinstance(conditioning, dict):
@@ -102,7 +103,7 @@ class PLMSSampler(object):
         self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
         C, H, W = shape
         size = (batch_size, C, H, W)
-        print(f'Data shape for PLMS sampling is {size}')
+        print(f'Data shape for PLMS sampling is {size}\n')
 
         output = self.plms_sampling(conditioning, size,
                                                     callback=callback,
@@ -142,7 +143,7 @@ class PLMSSampler(object):
         ratios = {'alphas': alphas, 'alphas_prev': alphas_prev, 'sqrt_one_minus_alphas': sqrt_one_minus_alphas, 'sigmas': sigmas}
         # to calculate the expectation
 
-        return (samples, intermediates) if not loss_mode else (samples, intermediates, ratios, samples_list)
+        return samples, intermediates, samples_list if loss_mode else None
 
     @torch.no_grad()
     def plms_sampling(self, cond, shape,
@@ -214,7 +215,7 @@ class PLMSSampler(object):
                 intermediates['x_inter'].append(img)
                 intermediates['pred_x0'].append(pred_x0)
 
-        return (img, intermediates) if not is_train else (img, intermediates, img_list)
+        return img, intermediates, img_list if is_train else None
 
     @torch.no_grad()
     def p_sample_plms(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
