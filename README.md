@@ -84,7 +84,7 @@ export MASTER_PORT=5678
 
 try to train
 ```bat
-python train_ps_adapter.py --local_rank=0 --gpus 0 --num_workers 2      # with single gpu
+python train_ps_adapter.py --local_rank 0 --gpus 0 --num_workers 2      # with single gpu
 ```
 
 
