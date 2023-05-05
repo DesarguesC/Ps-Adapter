@@ -322,8 +322,11 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         loss_mode=True,  # need to be trained
     )
     assert len(ratios) == len(samples), 'Fatal: Something went wrong in plms'
+    print(samples[0])
     for i in range(len(samples)):
-        samples[i] = cond_model(model.decode_first_stage(torch.clamp((samples[i] + 1.0) / 2.0, min=0.0, max=1.0)))
+        
+        u = model.decode_first_stage(samples[i])
+        samples[i] = cond_model(torch.clamp((u + 1.) / 2., min=0., max=1.))
 
     # seems no need to return an extra ratios matrix
     return samples, ratios
