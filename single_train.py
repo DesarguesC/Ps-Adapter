@@ -268,7 +268,7 @@ def parsr_args():
 
 
 def rates(ratios: dict):
-    assert 'alphas' in ratios, 'Invalid ratios.'
+    assert 'alphas' in ratios.keys(), 'Invalid ratios.'
     alphas = ratios['alphas']
     return (alphas / (1. - alphas)).sum(dim=0, keepdim=False)
 
@@ -377,14 +377,24 @@ def main():
 
             optimizer.zero_grad()
             model.zero_grad()
-            primary_adapter.zero_grad()
+            primary_adapter['model'].zero_grad()
 
-            features_B = secondary_adapter(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
-
-            u = (samples_B - const_B) ** 2
-            v = (samples_B - samples_A) ** 2
-            Expectation = 2 * rates(ratios) * u.sum() + v.sum()
+            features_B = secondary_adapter['model'](data['secondary'].to(device))
+            samples_B, ratios = train_inference(opt, c, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
+            
+            assert len(samples_B) == len(samples_A), 'qwq'
+            u, v = 0, 0
+            for x in samples_B:
+                print(x.shape, end=' ')
+            print('\n')
+            print(const_B.shape)
+            for i in range(len(samples_A)):
+                u += (torch.from_numpy(samples_B[i]) - const_B) ** 2
+                v += (torch.from_numpy(samples_B[i]) - samples_A[i]) ** 2
+                
+            print(u.shape, v.shape)
+                
+            Expectation = 2 * rates(ratios) * u + v
 
             loss_dict = {}
             log_prefix = 'Ps-Adapter-single-train'
