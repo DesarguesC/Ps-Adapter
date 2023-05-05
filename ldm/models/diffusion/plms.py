@@ -85,11 +85,7 @@ class PLMSSampler(object):
                 use_model -> the embed model: e.g. keypose, openpose, segmentation, sketch
         """
 
-        # print('*'*20,x_T)
-        # exit(0)
         loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
-        # use_model = kwargs['use_model'] if 'use_model' in kwargs else None
-        
 
         if conditioning is not None:
             if isinstance(conditioning, dict):
