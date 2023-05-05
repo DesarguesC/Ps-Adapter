@@ -36,7 +36,7 @@ def mkdir_and_rename(path):
     os.makedirs(osp.join(path, 'training_states'))
     os.makedirs(osp.join(path, 'visualization'))
 
-def str2bool(v):
+def str2bool(v: str) -> bool:
     if isinstance(v, bool):
         return v
     if v.lower() in ("yes", "true", "t", "y", "1"):
@@ -45,7 +45,20 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
-
+        
+def str2int(v: str) -> int:
+    if isinstance(v, int):
+        return v
+    if '*' in v:
+        assert isinstance(v, str), 'unrecognized / illegal keyword: \"max_resolution\"'
+        v = v.replace(' ', '')
+        l = v.split('*')
+        re = 1
+        for x in l:
+            re *= int(x)
+        return re
+    else:
+        raise RuntimeError('Unkonwn Exception.')
         
 
 def load_resume_state(opt):
@@ -241,7 +254,7 @@ def parsr_args():
     )
     parser.add_argument(
         "--max_resolution",
-        type=int,
+        type=str2int,
         default=512 * 512,
         help='quality of generated image'
     )
@@ -350,7 +363,7 @@ def main():
                 print('B_0.shape = ', B_0.shape)
                 print('const_B.shape = ', const_B.shape)
 
-                assert const_B.shape[0] == opt.H * opt.factor or const_B.shape[1] == opt.W * opt.factor
+                # assert const_B.shape[0] == opt.H * opt.factor or const_B.shape[1] == opt.W * opt.factor, "op-wh = ({0}, {1})".format(opt.H, opt.W)
 
                 features_A  = primary_adapter['model'](data['primary'].to(device))
 

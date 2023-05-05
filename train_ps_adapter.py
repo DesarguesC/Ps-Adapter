@@ -10,7 +10,7 @@ from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
 import time
 from ldm.data.dataset_ps_keypose import PsKeyposeDataset
-from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
+from basicsr.utils.dist_util import get_dist_info, master_only, init_dist
 from ldm.modules.encoders.adapter import Adapter
 from ldm.util import load_model_from_config
 
@@ -266,6 +266,7 @@ def main():
     opt = parsr_args()
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
+    print('start')
     init_dist(opt.launcher)
     print('init done')
     

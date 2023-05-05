@@ -91,11 +91,14 @@ class PsKeyposeDataset():
         if self.resize:
             h, w = h // self.factor, w // self.factor
 
-        print('base shape = ', (h,w))
+        # print('base shape = ', (h,w))
+        if A.shape != B.shape:
+            print('inequal~\n{0}, {1}'.format(A.shape, B.shape))
             
-        # B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
-        # A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
+        B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
+        A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
         A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
+        print('after shape: ', A.shape)
 
         # B first
         # down sample and resize
@@ -103,16 +106,11 @@ class PsKeyposeDataset():
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
 
         prompt = file['prompt'].strip()
-        # print('one group')
-        
-        assert A.shape == B.shape, 'here...'
-        # print(type(A))
         A = read_img(A)
         B = read_img(B)    
-        assert A.shape == B.shape, 'here!!!'
         A = rearrange(A, 'u v w -> w u v')
         B = rearrange(B, 'u v w -> w u v')
-        # print(A.shape, B.shape)
+        
         return {
             'primary': A,
             'secondary': B,
