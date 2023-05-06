@@ -18,8 +18,7 @@ from ldm.inference_base import (train_inference, diffusion_inference, get_adapte
                                 get_sd_models)
 
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
-from ldm.util import resize_tensor_image as rs
-from ldm.data.dataset_ps_keypose import deal
+
 
 @master_only
 def mkdir_and_rename(path):
@@ -292,13 +291,7 @@ def main():
                                      interpolation=opt.inter, factor=opt.factor, max_resolution=opt.max_resolution)
     print('already get data with length: ', len(train_dataset))
     opt.H, opt.W = train_dataset.item_shape
-<<<<<<< HEAD
-    print('base shape: ', train_dataset.item_shape)
-    max_resolution = opt.W * opt.H
-    setattr(opt, 'max_resolution', max_resolution)
-=======
     # downloaded: H, W
->>>>>>> 84278e669a4877680be07817a47a3245be239c51
     setattr(opt, 'resize_short_edge', None)
     # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_dataloader = torch.utils.data.DataLoader(
@@ -372,44 +365,16 @@ def main():
                 # CLIP
                 
                 B_0 = tensor2img(model_reflect('secondary'))
-<<<<<<< HEAD
-                
-                # print(type(B_0))
-                
-                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
-                print('data = {0}\n'.format(data))
-                print('data[\'secondary\'].shape = ', data['secondary'].shape)
-                print('data[\'primary\'].shape = ', data['primary'].shape)
-=======
->>>>>>> 84278e669a4877680be07817a47a3245be239c51
                 print('B_0.shape = ', B_0.shape)
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose, already a openpose image
                 print('const_B.shape = ', const_B.shape)
-<<<<<<< HEAD
-
-                features_A  = primary_adapter['model'](data['primary'].to(device))
-                print('feature_A.shape = ', feature_A.shape)
-                # already went through 'img2tensor'
-=======
                 # B_0.shape = const_B.shape !
                 features_A  = primary_adapter['model'](data['primary'].to(device))
->>>>>>> 84278e669a4877680be07817a47a3245be239c51
                 
                 samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
 
             optimizer.zero_grad()
             model.zero_grad()
-<<<<<<< HEAD
-            primary_adapter.zero_grad()
-
-            # features_B, append_B = secondary_adapter(data['secondary'].to(device))
-            features_B = secondary_adapter['model'](data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
-
-            u = (samples_B - const_B) ** 2
-            v = (samples_B - samples_A) ** 2
-            Expectation = 2 * rates(ratios) * u.sum() + v.sum()
-=======
             primary_adapter['model'].zero_grad()
 
             features_B = secondary_adapter['model'](data['secondary'].to(device))
@@ -422,11 +387,9 @@ def main():
             print('\n')
             print(const_B.shape)
             for i in range(len(samples_A)):
-                with torch.no_grad():
-                    B = torch.from_numpy(samples_B[i]).squeeze()
-                    A = torch.from_numpy(samples_A[i]).squeeze()
-                    A, B, const_B = deal(A), deal(B), deal(const_B)
-                
+                from ldm.util import resize_tensor_image as rs
+                B = torch.from_numpy(samples_B[i]).squeeze()
+                A = torch.form_numpy(samples_A[i]).squeeze()
                 const_B, _ = rs(const_B, B, inter=opt.inter)
                 u += (B - const_B) ** 2
                 v += (B - A) ** 2
@@ -434,7 +397,6 @@ def main():
             print(u.shape, v.shape)
                 
             Expectation = 2 * rates(ratios) * u + v
->>>>>>> 84278e669a4877680be07817a47a3245be239c51
 
             loss_dict = {}
             log_prefix = 'Ps-Adapter-single-train'
