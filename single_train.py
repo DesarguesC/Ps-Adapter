@@ -267,7 +267,7 @@ def main():
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
     opt.H, opt.W = train_dataset.item_shape
-    print('base shape: ', (opt.H, opt.W))
+    print('base shape: ', train_dataset.item_shape)
     max_resolution = opt.W * opt.H
     setattr(opt, 'max_resolution', max_resolution)
     setattr(opt, 'resize_short_edge', None)
@@ -343,12 +343,14 @@ def main():
                 # print(type(B_0))
                 
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose
-                print('data[...].shape = ', data['secondary'].shape)
+                print('data = {0}\n'.format(data))
+                print('data[\'secondary\'].shape = ', data['secondary'].shape)
+                print('data[\'primary\'].shape = ', data['primary'].shape)
                 print('B_0.shape = ', B_0.shape)
                 print('const_B.shape = ', const_B.shape)
-                # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
-                features_A  = primary_adapter['model'](data['primary'].to(device))
 
+                features_A  = primary_adapter['model'](data['primary'].to(device))
+                print('feature_A.shape = ', feature_A.shape)
                 # already went through 'img2tensor'
                 
                 samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose)
@@ -358,7 +360,7 @@ def main():
             primary_adapter.zero_grad()
 
             # features_B, append_B = secondary_adapter(data['secondary'].to(device))
-            features_B = secondary_adapter(data['secondary'].to(device))
+            features_B = secondary_adapter['model'](data['secondary'].to(device))
             samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
 
             u = (samples_B - const_B) ** 2

@@ -1,3 +1,4 @@
+# /usr/local/nccl_2.17.1-1+cuda12.0_x86_64/lib
 import argparse
 import logging
 import os
