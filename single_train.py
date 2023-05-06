@@ -365,16 +365,20 @@ def main():
     
     print(f'opt shape 4: ({opt.H}, {opt.W})')
     
+    print('pre-sample: ')
+    samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
+    sh = samples_A[0].shape
+    
+    
     
     for epoch in range(start_epoch, opt.epochs):
         epoch_start_time = time.time()
         # train
         cond_model = OpenposeInference().to(device)
         
-        
-        sh = (opt.bsize//2, 4, opt.H, opt.W)
-        
-        
+        Expectation_Loss = .0
+        u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
+               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
         
         for _, data in enumerate(train_dataloader):
             current_iter += 1
@@ -401,8 +405,7 @@ def main():
             
             sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
             global u, v
-            u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
-               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
+            
 
             const_B = const_B.to(torch.float32)
             
@@ -425,40 +428,40 @@ def main():
             
             u = u.sum()
             v = v.sum()
-            Expectation = 2 * rates(ratios) * u.sum() + v.sum()
+            Expectation_Loss += 2 * rates(ratios) * u.sum() + v.sum()
 
-            loss_dict = {}
-            log_prefix = 'Ps-Adapter-single-train'
-            loss_dict.update({f'{log_prefix}/loss_u': u})
-            loss_dict.update({f'{log_prefix}/loss_v': v})
-            loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
+        loss_dict = {}
+        log_prefix = 'Ps-Adapter-single-train'
+        loss_dict.update({f'{log_prefix}/loss_u': u})
+        loss_dict.update({f'{log_prefix}/loss_v': v})
+        loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
 
-            print("[%5d|%5d] %.2f(s) U: %.6f, V: %.6f, Exception Loss: %.6f " % \
-                  (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, u, v, Expectation))
+        print("[%5d|%5d] %.2f(s) U: %.6f, V: %.6f, Exception Loss: %.6f " % \
+             (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, u, v, Expectation))
 
-            Expectation.backward()
-            optimizer.step()
+        Expectation.backward()
+        optimizer.step()
 
-            if (current_iter + 1) % opt.print_fq == 0:
-                logger.info(loss_dict)
+        if (current_iter + 1) % opt.print_fq == 0:
+            logger.info(loss_dict)
 
-                # save checkpoint
-                rank, _ = get_dist_info()
-                if (rank == 0) and ((current_iter + 1) % config['training']['save_freq'] == 0):
-                    save_filename = f'model_ad_{current_iter + 1}.pth'
-                    save_path = os.path.join(experiments_root, 'models', save_filename)
-                    save_dict = {}
-                    state_dict = secondary_adapter.state_dict()
-                    for key, param in state_dict.items():
-                        if key.startswith('module.'):  # remove unnecessary 'module.'
-                            key = key[7:]
-                        save_dict[key] = param.cpu()
-                    torch.save(save_dict, save_path)
-                    # save state
-                    state = {'epoch': epoch, 'iter': current_iter + 1, 'optimizers': optimizer.state_dict()}
-                    save_filename = f'{current_iter + 1}.state'
-                    save_path = os.path.join(experiments_root, 'training_states', save_filename)
-                    torch.save(state, save_path)
+            # save checkpoint
+            rank, _ = get_dist_info()
+            if (rank == 0) and ((current_iter + 1) % config['training']['save_freq'] == 0):
+                save_filename = f'model_ad_{current_iter + 1}.pth'
+                save_path = os.path.join(experiments_root, 'models', save_filename)
+                save_dict = {}
+                state_dict = secondary_adapter.state_dict()
+                for key, param in state_dict.items():
+                    if key.startswith('module.'):  # remove unnecessary 'module.'
+                        key = key[7:]
+                    save_dict[key] = param.cpu()
+                torch.save(save_dict, save_path)
+                # save state
+                state = {'epoch': epoch, 'iter': current_iter + 1, 'optimizers': optimizer.state_dict()}
+                save_filename = f'{current_iter + 1}.state'
+                save_path = os.path.join(experiments_root, 'training_states', save_filename)
+                torch.save(state, save_path)
 
 
 if __name__ == "__main__":
