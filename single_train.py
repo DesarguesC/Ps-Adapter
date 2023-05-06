@@ -279,7 +279,6 @@ def resize_tensor_image(A, B, inter):
     # resize A as B
     h, w, _ = B.shape
     A_ = (A.cpu().numpy()).astype(np.float32)
-    # A_ = A_.astype(np.float32)
     A = cv2.resize(A_, (w,h), interpolation=Inter[inter])
     A = torch.from_numpy(A)
     A, B = deal(A), deal(B)
@@ -379,6 +378,7 @@ def main():
                 B_0 = tensor2img(model_reflect('secondary'))
                 print('B_0.shape = ', B_0.shape)
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose, already a openpose image
+                # const_B is equivalent to input keypose data
                 print('const_B.shape = ', const_B.shape)
                 # B_0.shape = const_B.shape !
                 features_A  = primary_adapter['model'](data['primary'].to(device))
@@ -397,8 +397,11 @@ def main():
             sh = torch.from_numpy(samples_A[0].astype(np.float32))
             u, v = torch.zeros_like(sh, dtype=torch.float32, requires_grad=True), \
                     torch.zeros_like(sh, dtype=torch.float32, requires_grad=True)
-            
             const_B = const_B.to(torch.float32)
+            
+            print('Training Base Info: ')
+            print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
+            
             for i in range(len(samples_A)):
                 
                 B = torch.from_numpy(np.float32(samples_B[i])).squeeze()
@@ -408,16 +411,15 @@ def main():
                 assert A.shape == B.shape
                 
                 A, B, const_B = deal(A), deal(B), deal(const_B)
-                # print(A.shape, B.shape, const_B.shape)
                 
                 const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
-                u += (B - const_B) ** 2
-                v += (B - A) ** 2
+                u = u + (B - const_B) ** 2
+                v = v + (B - A) ** 2
                 
-            print(u.shape, v.shape)
-            print(u.sum, v.sum())
-            print(type(u.sum()), type(v.sum()))
-            print(u, v)
+            # print(u.shape, v.shape)
+            # print(u.sum, v.sum())
+            # print(type(u.sum()), type(v.sum()))
+            # print(u, v)
                 
             Expectation = 2 * rates(ratios) * u.sum() + v.sum()
 
@@ -427,7 +429,7 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
 
-            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Expectation))
+            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, Expectation))
 
             Expectation.backward()
             optimizer.step()

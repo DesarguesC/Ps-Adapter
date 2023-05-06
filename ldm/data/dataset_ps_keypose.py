@@ -18,13 +18,21 @@ Inter = {
 }
 
 def deal(Input):
-    t = Input.shape[0]
-    s = t if not t==3 else Input.shape[1]
-    Input = Input.reshape(t, -1, 3)
+    sh = Input.shape
+    assert len(sh) == 3
+    arr = []
+    for i in range(3):
+        if sh[i]==3:
+            for j in range(3):
+                if j!=i:
+                    arr.append(j)
+            arr.append(i)
+            break
+    
+    assert len(arr) == 3
+    assert sh[arr[2]] == 3, f'problem occurred with Input shape: {Input.shape}'
+    Input = Input.reshape(sh[arr[0]], sh[arr[1]], sh[arr[2]])
     return Input
-
-# def divide(shape, factor):
-#     return (shape[0] // factor, shape[1] // factor)
 
 
 class PsKeyposeDataset():
@@ -92,18 +100,10 @@ class PsKeyposeDataset():
         # regular
         
         h, w = self.item_shape
-
-        # if A.shape != B.shape:
-        #    print('inequal~\n{0}, {1}'.format(A.shape, B.shape))
-            
-        B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
-        A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
-        # A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
-        
-        # print('after shape: ', A.shape)
-
-        # B first
-        # down sample and resize
+  
+        B = cv2.resize(B, (w, h), interpolation=Inter[self.inter])
+        A = cv2.resize(A, (w, h), interpolation=Inter[self.inter])
+        # (h, w) or (w, h) ?
         
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
 
