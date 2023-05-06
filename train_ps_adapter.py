@@ -83,7 +83,7 @@ def parsr_args():
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=8,
+        default=4,
         help="twice of the amount of GPU"
     )
     parser.add_argument(
@@ -180,7 +180,7 @@ def parsr_args():
     )
     parser.add_argument(
         "--gpus",
-        default=[0, 1, 2, 3],
+        default=[0, 1],
         help="gpu idx",
     )
     parser.add_argument(
@@ -267,9 +267,16 @@ def main():
     opt = parsr_args()
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
-    print('start')
-    init_dist(opt.launcher)
-    print('init done')
+    
+    torch.cuda.set_device(opt.local_rank)
+    torch.distributed.init_process_group(
+        'nccl',
+        init_method='env://'
+    )
+
+    # print('start')
+    # init_dist(opt.launcher)
+    # print('init done')
     
     torch.backends.cudnn.benchmark = True
     device = 'cuda'

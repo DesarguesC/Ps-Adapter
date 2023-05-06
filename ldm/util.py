@@ -184,8 +184,6 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
 
 def resize_tensor_image(A, B, inter):
     # resize A as B
-    assert isinstance(A, torch.tensor)
-    assert isinstance(B, torch.tensor)
     h, w, _ = B.shape
     A = cv2.resize(A, (h,w), interpolation=Inter[inter])
     assert A.shape == B.shape, 'Resize Failed'

@@ -18,7 +18,8 @@ from ldm.inference_base import (train_inference, diffusion_inference, get_adapte
                                 get_sd_models)
 
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
-
+from ldm.util import resize_tensor_image as rs
+from ldm.data.dataset_ps_keypose import deal
 
 @master_only
 def mkdir_and_rename(path):
@@ -421,9 +422,11 @@ def main():
             print('\n')
             print(const_B.shape)
             for i in range(len(samples_A)):
-                from ldm.util import resize_tensor_image as rs
-                B = torch.from_numpy(samples_B[i]).squeeze()
-                A = torch.form_numpy(samples_A[i]).squeeze()
+                with torch.no_grad():
+                    B = torch.from_numpy(samples_B[i]).squeeze()
+                    A = torch.from_numpy(samples_A[i]).squeeze()
+                    A, B, const_B = deal(A), deal(B), deal(const_B)
+                
                 const_B, _ = rs(const_B, B, inter=opt.inter)
                 u += (B - const_B) ** 2
                 v += (B - A) ** 2
