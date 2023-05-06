@@ -301,12 +301,12 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model=None, l
         opt.H = 512
         opt.W = 512
         print('no------'*10)
-    
+    print(f'opt shape (inference): ({opt.H}, {opt.W})')
     shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]    # fit the adapter feature
-    # print('base shape in inference: ', shape)
     assert (opt.bsize//2)*2 == opt.bsize, 'bad batch size.'
-
+    print(f'inference shape: {shape}')
     # DDIMSampler
+   
     *_, ratios, samples = sampler.sample(
         S=opt.steps,
         conditioning=c,

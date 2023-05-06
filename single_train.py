@@ -279,7 +279,7 @@ def resize_tensor_image(A, B, inter):
     # resize A as B
     h, w, _ = B.shape
     A_ = (A.cpu().numpy()).astype(np.float32)
-    A = cv2.resize(A_, (w,h), interpolation=Inter[inter])
+    A = cv2.resize(A_, (h,w), interpolation=Inter[inter])
     A = torch.from_numpy(A)
     A, B = deal(A), deal(B)
     assert A.shape == B.shape, f'Resize Failed: A.shape = {A.shape}, B.shape = {B.shape}'
@@ -301,6 +301,7 @@ def main():
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize,\
                                      interpolation=opt.inter, factor=opt.factor, max_resolution=opt.max_resolution)
     print('already get data with length: ', len(train_dataset))
+    
     opt.H, opt.W = train_dataset.item_shape
     # downloaded: H, W
     setattr(opt, 'resize_short_edge', None)
@@ -317,6 +318,7 @@ def main():
 
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
+    
     # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
     # hyper-parameters remained to be adjust
 
@@ -360,15 +362,20 @@ def main():
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.get_first_stage_encoding(
         model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
+    
+    print(f'opt shape 4: ({opt.H}, {opt.W})')
+    
+    
     for epoch in range(start_epoch, opt.epochs):
-        # train_dataloader.sampler.set_epoch(epoch)
         epoch_start_time = time.time()
         # train
-
         cond_model = OpenposeInference().to(device)
-
-
-
+        
+        
+        sh = (opt.bsize//2, 4, opt.H, opt.W)
+        
+        
+        
         for _, data in enumerate(train_dataloader):
             current_iter += 1
             with torch.no_grad():
@@ -376,12 +383,10 @@ def main():
                 # CLIP
                 
                 B_0 = tensor2img(model_reflect('secondary'))
-                print('B_0.shape = ', B_0.shape)
+                
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')  # only need openpose, already a openpose image
                 # const_B is equivalent to input keypose data
-                print('const_B.shape = ', const_B.shape)
-                # B_0.shape = const_B.shape !
-                features_A  = primary_adapter['model'](data['primary'].to(device))
+                features_A  = primary_adapter['model'](data['primary'].to(device))                
                 
                 samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
 
@@ -394,9 +399,11 @@ def main():
             
             assert len(samples_B) == len(samples_A), 'qwq'
             
-            sh = torch.from_numpy(samples_A[0].astype(np.float32))
-            u, v = torch.zeros_like(sh, dtype=torch.float32, requires_grad=True), \
-                    torch.zeros_like(sh, dtype=torch.float32, requires_grad=True)
+            sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
+            global u, v
+            u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
+               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
+
             const_B = const_B.to(torch.float32)
             
             print('Training Base Info: ')
@@ -415,12 +422,9 @@ def main():
                 const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
                 u = u + (B - const_B) ** 2
                 v = v + (B - A) ** 2
-                
-            # print(u.shape, v.shape)
-            # print(u.sum, v.sum())
-            # print(type(u.sum()), type(v.sum()))
-            # print(u, v)
-                
+            
+            u = u.sum()
+            v = v.sum()
             Expectation = 2 * rates(ratios) * u.sum() + v.sum()
 
             loss_dict = {}
@@ -429,7 +433,8 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
 
-            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, Expectation))
+            print("[%5d|%5d] %.2f(s) U: %.6f, V: %.6f, Exception Loss: %.6f " % \
+                  (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, u, v, Expectation))
 
             Expectation.backward()
             optimizer.step()
