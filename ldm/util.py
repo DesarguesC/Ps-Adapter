@@ -182,13 +182,6 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
     model.eval()
     return model
 
-def resize_tensor_image(A, B, inter):
-    # resize A as B
-    h, w, _ = B.shape
-    A = cv2.resize(A, (h,w), interpolation=Inter[inter])
-    assert A.shape == B.shape, 'Resize Failed'
-    return A, B
-
 
 
 

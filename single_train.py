@@ -9,6 +9,7 @@ from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
 import time
+import numpy as np
 from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, init_dist, master_only
 from ldm.modules.encoders.adapter import Adapter
@@ -18,7 +19,8 @@ from ldm.inference_base import (train_inference, diffusion_inference, get_adapte
                                 get_sd_models)
 
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
-
+import cv2
+from ldm.data.dataset_ps_keypose import deal, Inter
 
 @master_only
 def mkdir_and_rename(path):
@@ -273,6 +275,16 @@ def rates(ratios: dict):
     return (alphas / (1. - alphas)).sum(dim=0, keepdim=False)
 
 
+def resize_tensor_image(A, B, inter):
+    # resize A as B
+    h, w, _ = B.shape
+    A_ = (A.cpu().numpy()).astype(np.float32)
+    # A_ = A_.astype(np.float32)
+    A = cv2.resize(A_, (w,h), interpolation=Inter[inter])
+    A = torch.from_numpy(A)
+    A, B = deal(A), deal(B)
+    assert A.shape == B.shape, f'Resize Failed: A.shape = {A.shape}, B.shape = {B.shape}'
+    return A.cpu(), B.cpu()
 
 
 
@@ -381,22 +393,33 @@ def main():
             samples_B, ratios = train_inference(opt, c, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
             
             assert len(samples_B) == len(samples_A), 'qwq'
-            u, v = 0, 0
-            for x in samples_B:
-                print(x.shape, end=' ')
-            print('\n')
-            print(const_B.shape)
+            
+            sh = torch.from_numpy(samples_A[0].astype(np.float32))
+            u, v = torch.zeros_like(sh, dtype=torch.float32, requires_grad=True), \
+                    torch.zeros_like(sh, dtype=torch.float32, requires_grad=True)
+            
+            const_B = const_B.to(torch.float32)
             for i in range(len(samples_A)):
-                from ldm.util import resize_tensor_image as rs
-                B = torch.from_numpy(samples_B[i]).squeeze()
-                A = torch.form_numpy(samples_A[i]).squeeze()
-                const_B, _ = rs(const_B, B, inter=opt.inter)
+                
+                B = torch.from_numpy(np.float32(samples_B[i])).squeeze()
+                A = torch.from_numpy(np.float32(samples_A[i])).squeeze()
+                const_B = const_B.squeeze()
+                assert len(A.shape)==3
+                assert A.shape == B.shape
+                
+                A, B, const_B = deal(A), deal(B), deal(const_B)
+                # print(A.shape, B.shape, const_B.shape)
+                
+                const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
                 u += (B - const_B) ** 2
                 v += (B - A) ** 2
                 
             print(u.shape, v.shape)
+            print(u.sum, v.sum())
+            print(type(u.sum()), type(v.sum()))
+            print(u, v)
                 
-            Expectation = 2 * rates(ratios) * u + v
+            Expectation = 2 * rates(ratios) * u.sum() + v.sum()
 
             loss_dict = {}
             log_prefix = 'Ps-Adapter-single-train'
