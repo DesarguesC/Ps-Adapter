@@ -317,13 +317,13 @@ def main():
     print('loading adapters from {0}'.format(opt.adapter_ori))
 
     primary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
-    secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
+    # secondary_adapter = get_adapters(opt, getattr(ExtraCondition, "openpose"))
     
-    # Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
+    secondary_adapter = Adapter(cin=3 * 64, channels=[320, 640, 1280, 1280][:4], nums_rb=2, ksize=1, sk=True, use_conv=False).to(device)
     # hyper-parameters remained to be adjust
 
 
-    params = list(secondary_adapter['model'].parameters())
+    params = list(secondary_adapter.parameters())
     optimizer = torch.optim.AdamW(params, lr=config['training']['lr'])
 
     experiments_root = osp.join('experiments', opt.name)
@@ -361,26 +361,15 @@ def main():
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.get_first_stage_encoding(
-        model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
-    
-    print(f'opt shape 4: ({opt.H}, {opt.W})')
-    
-    print('pre-sample: ')
-    samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
-    sh = samples_A[0].shape
-    
-    
+        model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)    
     
     for epoch in range(start_epoch, opt.epochs):
-        epoch_start_time = time.time()
         # train
         cond_model = OpenposeInference().to(device)
-        
-        Expectation_Loss = .0
-        u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
-               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
-        
+        ss = 0
         for _, data in enumerate(train_dataloader):
+            epoch_start_time = time.time()
+            ss += 1
             current_iter += 1
             with torch.no_grad():
                 c = model.get_learned_conditioning(data['prompt'])
@@ -393,24 +382,25 @@ def main():
                 features_A  = primary_adapter['model'](data['primary'].to(device))                
                 
                 samples_A, _ = train_inference(opt, c, model, sampler, features_A, cond_model=cond_model, loss_mode=True)
-
+            
             optimizer.zero_grad()
             model.zero_grad()
+            
             primary_adapter['model'].zero_grad()
-
-            features_B = secondary_adapter['model'](data['secondary'].to(device))
+            features_B = secondary_adapter(data['secondary'].to(device))
+            print(f'delta feature: {[(features_A[i]-features_B[i]).sum() for i in range(len(features_A))]}')
             samples_B, ratios = train_inference(opt, c, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
             
-            assert len(samples_B) == len(samples_A), 'qwq'
-            
-            sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
-            global u, v
-            
+            assert len(samples_B) == len(samples_A), 'qwq'           
 
             const_B = const_B.to(torch.float32)
             
             print('Training Base Info: ')
             print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
+            
+            sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
+            u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
+               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
             
             for i in range(len(samples_A)):
                 
@@ -425,43 +415,48 @@ def main():
                 const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
                 u = u + (B - const_B) ** 2
                 v = v + (B - A) ** 2
+            u, v = u.sum(), v.sum()
             
-            u = u.sum()
-            v = v.sum()
-            Expectation_Loss += 2 * rates(ratios) * u.sum() + v.sum()
+            print((A-B).sum())
+            
+            Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
+            Expectation_Loss.backward()
+            optimizer.step()
 
-        loss_dict = {}
-        log_prefix = 'Ps-Adapter-single-train'
-        loss_dict.update({f'{log_prefix}/loss_u': u})
-        loss_dict.update({f'{log_prefix}/loss_v': v})
-        loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
+            loss_dict = {}
+            log_prefix = 'Ps-Adapter-single-train'
+            loss_dict.update({f'{log_prefix}/loss_u': u})
+            loss_dict.update({f'{log_prefix}/loss_v': v})
+            loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation_Loss})
 
-        print("[%5d|%5d] %.2f(s) U: %.6f, V: %.6f, Exception Loss: %.6f " % \
-             (epoch+1, opt.epochs-start_epoch, time.time() - epoch_start_time, u, v, Expectation))
+        
+            # print(Expectation_Loss)   ->   torch.size([1])
+        
+            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Exception Loss: %.6f " % \
+             (epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss))
 
-        Expectation.backward()
-        optimizer.step()
 
-        if (current_iter + 1) % opt.print_fq == 0:
-            logger.info(loss_dict)
 
-            # save checkpoint
-            rank, _ = get_dist_info()
-            if (rank == 0) and ((current_iter + 1) % config['training']['save_freq'] == 0):
-                save_filename = f'model_ad_{current_iter + 1}.pth'
-                save_path = os.path.join(experiments_root, 'models', save_filename)
-                save_dict = {}
-                state_dict = secondary_adapter.state_dict()
-                for key, param in state_dict.items():
-                    if key.startswith('module.'):  # remove unnecessary 'module.'
-                        key = key[7:]
-                    save_dict[key] = param.cpu()
-                torch.save(save_dict, save_path)
-                # save state
-                state = {'epoch': epoch, 'iter': current_iter + 1, 'optimizers': optimizer.state_dict()}
-                save_filename = f'{current_iter + 1}.state'
-                save_path = os.path.join(experiments_root, 'training_states', save_filename)
-                torch.save(state, save_path)
+            if (current_iter + 1) % opt.print_fq == 0:
+                logger.info(loss_dict)
+
+                # save checkpoint
+                rank, _ = get_dist_info()
+                if (rank == 0) and ((current_iter + 1) % config['training']['save_freq'] == 0):
+                    save_filename = f'model_ad_{current_iter + 1}.pth'
+                    save_path = os.path.join(experiments_root, 'models', save_filename)
+                    save_dict = {}
+                    state_dict = secondary_adapter.state_dict()
+                    for key, param in state_dict.items():
+                        if key.startswith('module.'):  # remove unnecessary 'module.'
+                            key = key[7:]
+                        save_dict[key] = param.cpu()
+                    torch.save(save_dict, save_path)
+                    # save state
+                    state = {'epoch': epoch, 'iter': current_iter + 1, 'optimizers': optimizer.state_dict()}
+                    save_filename = f'{current_iter + 1}.state'
+                    save_path = os.path.join(experiments_root, 'training_states', save_filename)
+                    torch.save(state, save_path)
 
 
 if __name__ == "__main__":
