@@ -80,6 +80,10 @@ class DDIMSampler(object):
                # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
                **kwargs
                ):
+
+        loss_mode = kwargs['loss_mode'] if 'loss_mode' in kwargs else False
+        # print(f'loss_mode = {loss_mode}')
+
         if conditioning is not None:
             if isinstance(conditioning, dict):
                 cbs = conditioning[list(conditioning.keys())[0]].shape[0]
@@ -95,7 +99,7 @@ class DDIMSampler(object):
         size = (batch_size, C, H, W)
         print(f'Data shape for DDIM sampling is {size}, eta {eta}')
 
-        samples, intermediates = self.ddim_sampling(conditioning, size,
+        output = self.ddim_sampling(conditioning, size,
                                                     callback=callback,
                                                     img_callback=img_callback,
                                                     quantize_denoised=quantize_x0,
@@ -112,8 +116,25 @@ class DDIMSampler(object):
                                                     features_adapter=features_adapter,
                                                     append_to_context=append_to_context,
                                                     cond_tau=cond_tau,
+                                                    is_train=loss_mode,
+                                                    use_original_steps=False
                                                     )
-        return samples, intermediates
+        if loss_mode:
+            samples, intermediates, samples_list = output
+        else:
+            samples, intermediates, _ = output
+
+        use_original_steps = False
+        alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
+        alphas_prev = self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
+        sqrt_one_minus_alphas = self.model.sqrt_one_minus_alphas_cumprod if use_original_steps else self.ddim_sqrt_one_minus_alphas
+        sigmas = self.model.ddim_sigmas_for_original_num_steps if use_original_steps else self.ddim_sigmas
+
+        ratios = {'alphas': alphas, 'alphas_prev': alphas_prev, 'sqrt_one_minus_alphas': sqrt_one_minus_alphas,
+                  'sigmas': sigmas}
+        # to calculate the expectation
+
+        return samples, intermediates, ratios, samples_list if loss_mode else None
 
     @torch.no_grad()
     def ddim_sampling(self, cond, shape,
@@ -122,7 +143,13 @@ class DDIMSampler(object):
                       mask=None, x0=None, img_callback=None, log_every_t=100,
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None, features_adapter=None,
-                      append_to_context=None, cond_tau=0.4):
+                      append_to_context=None, cond_tau=0.4, **kwargs):
+
+        is_train = kwargs['is_train'] if 'is_train' in kwargs else False
+        model = kwargs['model'] if 'model' in kwargs else None
+        
+        # assert is_train and model is not None or not is_train and model is None, 'Fatal: Invalid inputs of loss_mode and use_model.'
+
         device = self.model.betas.device
         b = shape[0]
         if x_T is None:
@@ -137,11 +164,14 @@ class DDIMSampler(object):
             timesteps = self.ddim_timesteps[:subset_end]
 
         intermediates = {'x_inter': [img], 'pred_x0': [img]}
-        time_range = reversed(range(0, timesteps)) if ddim_use_original_steps else np.flip(timesteps)
+        time_range = list(reversed(range(0, timesteps))) if ddim_use_original_steps else np.flip(timesteps)
         total_steps = timesteps if ddim_use_original_steps else timesteps.shape[0]
         print(f"Running DDIM Sampling with {total_steps} timesteps")
 
         iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
+        old_eps = []
+        if is_train:
+            img_list = []
 
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
@@ -164,7 +194,16 @@ class DDIMSampler(object):
                                       append_to_context=None if index < int(
                                           0.5 * total_steps) else append_to_context,
                                       )
-            img, pred_x0 = outs
+            # outs = x_prev, pred_x0, e_t
+
+            img, pred_x0, e_t = outs
+            # {img: x_prev, pred_x0: pred_x0, e_t: e_t}
+            old_eps.append(e_t)
+            if is_train:
+                img_list.append(img)
+            if len(old_eps) >= 4:
+                old_eps.pop(0)
+
             if callback: callback(i)
             if img_callback: img_callback(pred_x0, i)
 
@@ -172,7 +211,7 @@ class DDIMSampler(object):
                 intermediates['x_inter'].append(img)
                 intermediates['pred_x0'].append(pred_x0)
 
-        return img, intermediates
+        return img, intermediates, img_list if is_train else None
 
     @torch.no_grad()
     def p_sample_ddim(self, x, c, t, index, repeat_noise=False, use_original_steps=False, quantize_denoised=False,
@@ -258,7 +297,7 @@ class DDIMSampler(object):
         if noise_dropout > 0.:
             noise = torch.nn.functional.dropout(noise, p=noise_dropout)
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt + noise
-        return x_prev, pred_x0
+        return x_prev, pred_x0, e_t
 
     @torch.no_grad()
     def stochastic_encode(self, x0, t, use_original_steps=False, noise=None):

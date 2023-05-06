@@ -9,10 +9,13 @@ from torch.nn.parallel import DataParallel, DistributedDataParallel
 
 
 def init_dist(launcher, backend='nccl', **kwargs):
+    print('init')
     if mp.get_start_method(allow_none=True) is None:
         mp.set_start_method('spawn')
     if launcher == 'pytorch':
+        print('launch')
         _init_dist_pytorch(backend, **kwargs)
+        print('here')
     elif launcher == 'slurm':
         _init_dist_slurm(backend, **kwargs)
     else:
@@ -20,10 +23,14 @@ def init_dist(launcher, backend='nccl', **kwargs):
 
 
 def _init_dist_pytorch(backend, **kwargs):
+    print('dist')
     rank = int(os.environ['RANK'])
+    print(333)
     num_gpus = torch.cuda.device_count()
     torch.cuda.set_device(rank % num_gpus)
+    print(1)
     dist.init_process_group(backend=backend, **kwargs)
+    print(2)
 
 
 def _init_dist_slurm(backend, port=None):

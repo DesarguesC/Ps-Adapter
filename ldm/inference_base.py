@@ -284,7 +284,7 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
     return x_samples
 
 
-def train_inference(opt, c, model, sampler, adapter_features, cond_model, append_to_context=None):
+def train_inference(opt, c, model, sampler, adapter_features, cond_model=None, loss_mode=True, append_to_context=None):
     # # openpose
     # from ldm.modules.extra_condition.openpose.api import OpenposeInference
     # embed_model = OpenposeInference().to(opt.device)
@@ -301,12 +301,12 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         opt.H = 512
         opt.W = 512
         print('no------'*10)
-    # shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]
-    shape = [opt.C, opt.H, opt.W]    # already downsampled
-    print('base shape in inference: ', shape)
-    assert (opt.bsize//2)*2 == opt.bsize, 'improper batch size set'
+    
+    shape = [opt.C, opt.H // opt.factor, opt.W // opt.factor]    # fit the adapter feature
+    # print('base shape in inference: ', shape)
+    assert (opt.bsize//2)*2 == opt.bsize, 'bad batch size.'
 
-    # PLMSSampler
+    # DDIMSampler
     *_, ratios, samples = sampler.sample(
         S=opt.steps,
         conditioning=c,
@@ -319,11 +319,15 @@ def train_inference(opt, c, model, sampler, adapter_features, cond_model, append
         features_adapter=adapter_features,
         append_to_context=append_to_context,
         cond_tau=opt.cond_tau,
-        loss_mode=True,  # need to be trained
+        loss_mode=loss_mode,  # need to be trained
     )
-    assert len(ratios) == len(samples), 'Fatal: Something went wrong in plms'
+    assert samples != None, '?'
+    # print(len(ratios['alphas']), len(samples))
+    assert len(ratios['alphas']) == len(samples), 'Fatal: Something went wrong in plms'
+    
     for i in range(len(samples)):
-        samples[i] = cond_model(model.decode_first_stage(torch.clamp((samples[i] + 1.0) / 2.0, min=0.0, max=1.0)))
+        u = model.decode_first_stage(samples[i])
+        samples[i] = cond_model(torch.clamp((u + 1.) / 2., min=0., max=1.))
 
     # seems no need to return an extra ratios matrix
     return samples, ratios

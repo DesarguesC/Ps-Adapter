@@ -26,12 +26,9 @@ def deal(Input):
 # def divide(shape, factor):
 #     return (shape[0] // factor, shape[1] // factor)
 
-def div8(x: int) -> bool:
-    return 8 * (x // 8) == x
-
 
 class PsKeyposeDataset():
-    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic", factor=1):
+    def __init__(self, caption_path, keypose_path, resize=False, interpolation="inter_cubic", factor=1, max_resolution=512*512):
         # caption_path: csv file path -> read csv file
         # keypose_path: image folder -> store image names
         self.caption_path = caption_path
@@ -40,6 +37,7 @@ class PsKeyposeDataset():
         self.inter = interpolation
         self.factor = factor
         self.item_shape = (512, 512)
+        self.max_resolution = max_resolution
         
 
         super(PsKeyposeDataset, self).__init__()
@@ -70,9 +68,13 @@ class PsKeyposeDataset():
                     })
         shuffle(self.files)
         
-        A = cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary'])
+        A = rs(cv2.imread(self.keypose_path+self.files[randint(1,100)]['primary']), max_resolution=self.max_resolution, resize_method=Inter[self.inter])
+        print('base data shape = ', A.shape)
         h, w, _ = A.shape
-        self.item_shape = (h // factor, w // factor)
+        
+        self.item_shape = h, w
+        
+        # self.item_shape = (64, 96)
         
         
         
@@ -85,41 +87,31 @@ class PsKeyposeDataset():
         
         A, B = cv2.imread(self.keypose_path+file['primary']), cv2.imread(self.keypose_path+file['secondary'])
         # read
-        # print('before deal: ', A.shape)
         A = deal(A)
         B = deal(B)
         # regular
-        # print('after deal: ', A.shape)
         
         h, w = self.item_shape
-        if self.resize:
-            h, w = h // self.factor, w // self.factor
-        h = h if div8(h) else 8 * (h//8 + 1)
-        w = w if div8(w) else 8 * (w//8 + 1)
-        print('data tensor size: ', (h,w))
+
+        # if A.shape != B.shape:
+        #    print('inequal~\n{0}, {1}'.format(A.shape, B.shape))
+            
         B = cv2.resize(B, (h, w), interpolation=Inter[self.inter])
         A = cv2.resize(A, (h, w), interpolation=Inter[self.inter])
+        # A, B = rs(A, max_resolution=self.max_resolution, resize_method=Inter[self.inter]), rs(B, max_resolution=self.max_resolution, resize_method=Inter[self.inter])
+        
+        # print('after shape: ', A.shape)
+
+        # B first
         # down sample and resize
-        # print('after resize: ', A.shape)
         
         assert A.shape == B.shape, 'two keypose must have same shape: Shape1-{0}, Shape2-{1}'.format(A.shape, B.shape)
-        
-        # if not A.shape == B.shape:
-        #     B = rearrange(B, 'u v w -> v u w')
+
         prompt = file['prompt'].strip()
-        # print('one group')
-        
-        assert A.shape==B.shape, 'here...'
-        # print(type(A))
-        
         A = read_img(A)
         B = read_img(B)    
-        assert A.shape==B.shape, 'here!!!'
-        
-        # print('before rearrange: ', A.shape)
         A = rearrange(A, 'u v w -> w u v')
         B = rearrange(B, 'u v w -> w u v')
-        # print('after rearrange: ', A.shape)
         
         return {
             'primary': A,

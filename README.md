@@ -84,13 +84,13 @@ export MASTER_PORT=5678
 
 try to train
 ```bat
-python train_ps_adapter.py --local_rank=0 --gpus 0 --num_workers 2      # with single gpu
+python train_ps_adapter.py --local_rank 0 --gpus 0 --num_workers 2      # with single gpu
 ```
 
 
 single train
 ```bat
-python single_train.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --factor 2
+python single_train.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4
 ```
 
 

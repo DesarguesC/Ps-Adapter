@@ -26,8 +26,10 @@ class OpenposeInference(nn.Module):
         self.body_estimation = Body(body_modelpath)
 
     def forward(self, x):
-        x = x[:, :, ::-1].copy()
+        # amend
         with torch.no_grad():
+            if not x.mode == 'RGB':
+                x = cv2.cvtColor(x.cpu().numpy(), cv2.COLOR_BGR2RGB)
             candidate, subset = self.body_estimation(x)
             canvas = np.zeros_like(x)
             canvas = util.draw_bodypose(canvas, candidate, subset)
