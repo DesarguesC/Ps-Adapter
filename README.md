@@ -82,9 +82,9 @@ export MASTER_ADDR=localhost
 export MASTER_PORT=5678
 ```
 
-try to train
+multi gpu to train
 ```bat
-python train_ps_adapter.py --local_rank 0 --gpus 0 --num_workers 2      # with single gpu
+python -m torch.distributed.launch --nproc_per_node=<gpu ammounts> --master_port=5678  train_ps_adapter.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4 --local_rank 0 --gpus <your gpu amounts> --num_workers <max: your cpu kernel> * 2
 ```
 
 
@@ -92,5 +92,7 @@ single train
 ```bat
 python single_train.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4
 ```
+
+
 
 
