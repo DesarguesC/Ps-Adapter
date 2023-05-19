@@ -180,7 +180,7 @@ def parsr_args():
     )
     parser.add_argument(
         "--gpus",
-        default=[0, 1],
+        default=[0, 1, 2, 3],
         help="gpu idx",
     )
     parser.add_argument(
@@ -268,19 +268,23 @@ def main():
     print('loading configs...')
     config = OmegaConf.load(f"{opt.config}")
     
-    torch.cuda.set_device(opt.local_rank)
-    torch.distributed.init_process_group(
-        'nccl',
-        init_method='env://'
-    )
-
-    # print('start')
-    # init_dist(opt.launcher)
-    # print('init done')
     
+    # x = opt.gpus
+    # print(x)
+    # exit(0)
+    
+    
+    torch.cuda.set_device(opt.local_rank)
+    print('start init')
+    torch.distributed.init_process_group(backend='NCCL')
+    
+    print('init ends')
+    
+    # init_dist(opt.launcher)
     torch.backends.cudnn.benchmark = True
     device = 'cuda'
     torch.cuda.set_device(opt.local_rank)
+    
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
@@ -294,7 +298,7 @@ def main():
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.bsize,
-        shuffle= True,    # (train_sampler is None),    ???
+        shuffle= False,    # (train_sampler is None),    ???
         num_workers=opt.num_workers,
         pin_memory=True,
         sampler=train_sampler)
