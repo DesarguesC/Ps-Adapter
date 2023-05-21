@@ -287,7 +287,7 @@ def main():
     
 
     print('reading datasets...')
-    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, resize=opt.resize, factor=opt.factor)
+    train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, interpolation='inter_lanczos', resize=opt.resize, factor=opt.factor)
     opt.H, opt.W = train_dataset.item_shape
     print('base shape: ', (opt.H, opt.W))
     max_resolution = opt.W * opt.H
@@ -298,7 +298,7 @@ def main():
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.bsize,
-        shuffle= False,    # (train_sampler is None),    ???
+        shuffle= (train_sampler is None),
         num_workers=opt.num_workers,
         pin_memory=True,
         sampler=train_sampler)
@@ -384,9 +384,9 @@ def main():
                 # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
 
                 # debug
-                print('data[...].shape = ', data['secondary'].shape)
-                print('B_0.shape = ', B_0.shape)
-                print('const_B.shape = ', const_B.shape)
+                # print('data[...].shape = ', data['secondary'].shape)
+                # print('B_0.shape = ', B_0.shape)
+                # print('const_B.shape = ', const_B.shape)
 
                 # already went through 'img2tensor'
                 features_A = primary_adapter['model'](data['primary'].to(device))
