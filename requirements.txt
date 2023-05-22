@@ -17,3 +17,4 @@ open-clip-torch
 kornia
 safetensors
 timm
+mmcv_full
