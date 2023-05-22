@@ -444,7 +444,9 @@ def main():
             
             print((A-B).sum())
             
-            Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
+            # Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
+            Expectation_Loss = 2 * rates(ratios) * u.sum()       # we found that B-A stays tensor(0.) so we remove it
+            
             Expectation_Loss.backward()
             optimizer.step()
 
@@ -454,7 +456,7 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/Expectation_Loss': Expectation_Loss})
 
-            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Exception Loss: %.6f " % \
+            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Expectation Loss: %.6f " % \
              (epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss))
 
 
