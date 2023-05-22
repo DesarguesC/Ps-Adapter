@@ -81,19 +81,45 @@ export WORLD_SIZE=2     # the number of the thread to be called
 export MASTER_ADDR=localhost
 export MASTER_PORT=5678
 export LOCAL_RANK=0
-export CUDA_VISIBLE_DEVICES=...(your gpus)
+export CUDA_VISIBLE_DEVICES=...(your gpus rank)
 ```
 
-multi gpu to train
+
+Use single gpu to train
+```bat
+python single_train.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4
+```
+
+
+However, if you want to use multi gpus for training, you should first ensure the nccl environment
+
+Build:
+```bat
+git clone https://github.com/NVIDIA/nccl.git
+cd nccl
+make -j src.build  # ensure your CUDA was installed on /usr/local/cuda, otherwise, run: make -j src.build CUDA_HOME=<YOUR CUDA PATH>
+make -j src.build NVCC_GENCODE="-gencode=arch=compute_70,code=sm_70"   # choosable; it might take several minutes
+```
+Install on Ubuntu or Debian
+```bat
+sudo apt install build-essential devscripts debhelper
+make pkg.debian.build
+ls build/pkg/deb/     # test
+```
+
+After this, test the installation
+```bat
+git clone https://github.com/NVIDIA/nccl-tests.git
+cd nccl-tests
+make
+./build/all_reduce_perf -b 8 -e 256M -f 2 -g <YOUR GPU AMOUNT>
+```
+
+Use multi gpus to train
 ```bat
 python -m torch.distributed.launch --nproc_per_node=<gpu ammounts> --master_port=5678  train_ps_adapter.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4 --local_rank 0 --gpus <your gpu amounts> --num_workers <max: your cpu kernel> * 2
 ```
 
-
-single train
-```bat
-python single_train.py --sd_ckpt ~/autodl-tmp/models/v1-5-pruned.ckpt --adapter_ori ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth --adapter_ckpt ~/autodl-tmp/models/t2iadapter_openpose_sd14v1.pth  --caption_path ~/autodl-tmp/Datasets/Captions/captions.csv --keypose_folder ~/autodl-tmp/Datasets/Keypose/ --resize yes --bsize 4
-```
 
 
 
