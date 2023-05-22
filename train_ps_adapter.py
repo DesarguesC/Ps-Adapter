@@ -4,12 +4,14 @@ import logging
 import os
 import os.path as osp
 import torch
+import numpy as np
 from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
                            scandir, tensor2img)
 
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
 import time
+from ldm.modules.extra_condition.openpose.api import OpenposeInference
 from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, master_only, init_dist
 from ldm.modules.encoders.adapter import Adapter
@@ -189,6 +191,9 @@ def parsr_args():
         type=int,
         help='node rank for distributed training'
     )
+    
+    # read form environment      ?
+    
     parser.add_argument(
         '--launcher',
         default='pytorch',
@@ -322,15 +327,15 @@ def main():
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
     primary_adapter = torch.nn.parallel.DistributedDataParallel(
-        primary_adapter,
+        primary_adapter['model'],
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
     secondary_adapter = torch.nn.parallel.DistributedDataParallel(
-        secondary_adapter,
+        secondary_adapter['model'],
         device_ids=[opt.local_rank],
         output_device=opt.local_rank)
 
-    params = list(secondary_adapter.module['model'].parameters())
+    params = list(secondary_adapter.module.parameters())
     optimizer = torch.optim.AdamW(params, lr=config['training']['lr'])
 
     experiments_root = osp.join('experiments', opt.name)
@@ -368,52 +373,77 @@ def main():
     # training
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.module.get_first_stage_encoding(    # ???
-        model.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
+        model.module.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
+    cond_model = OpenposeInference().to(device)
+    
     for epoch in range(start_epoch, opt.epochs):
+        
+        ss = 0
         train_dataloader.sampler.set_epoch(epoch)
-        epoch_start_time = time.time()
+       
         # train
         for _, data in enumerate(train_dataloader):
             current_iter += 1
+            epoch_start_time = time.time()
+            ss += 1
             with torch.no_grad():
-                c = model.module.get_learned_conditioning(data['prompt'])
                 # CLIP
-
+                c = model.module.get_learned_conditioning(data['prompt'])
+                
                 B_0 = tensor2img(model_reflect('secondary'))
                 const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')
-                # features_A, context_A = primary_adapter['model'](data['primary'].to(device))
-
-                # debug
-                # print('data[...].shape = ', data['secondary'].shape)
-                # print('B_0.shape = ', B_0.shape)
-                # print('const_B.shape = ', const_B.shape)
-
                 # already went through 'img2tensor'
-                features_A = primary_adapter['model'](data['primary'].to(device))
-                samples_A, _ = train_inference(opt, c, model, sampler, features_A, get_cond_openpose)
+                features_A = primary_adapter.module(data['primary'].to(device))
+                samples_A, _ = train_inference(opt, c, model.module, sampler, features_A, cond_model=cond_model, loss_mode=True)
 
             optimizer.zero_grad()
             model.zero_grad()
             primary_adapter.zero_grad()
-
-
             features_B= secondary_adapter.module(data['secondary'].to(device))
-            samples_B, ratios = train_inference(opt, model, sampler, features_B, get_cond_openpose)
+            samples_B, ratios = train_inference(opt, c, model.module, sampler, features_B, cond_model=cond_model, loss_mode=True)
 
-            u = (samples_B - const_B) ** 2
-            v = (samples_B - samples_A) ** 2
-            Expectation = 2 * rates(ratios) * u.sum() + v.sum()
+            assert len(samples_B) == len(samples_A), 'qwq'           
+
+            const_B = const_B.to(torch.float32)
+            
+            print('Training Base Info: ')
+            print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
+            
+            sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
+            u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
+               torch.zeros(sh, dtype=torch.float32, requires_grad=True)
+            
+            for i in range(len(samples_A)):
+                
+                B = torch.from_numpy(np.float32(samples_B[i])).squeeze()
+                A = torch.from_numpy(np.float32(samples_A[i])).squeeze()
+                const_B = const_B.squeeze()
+                assert len(A.shape)==3
+                assert A.shape == B.shape
+                
+                A, B, const_B = deal(A), deal(B), deal(const_B)
+                
+                const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
+                u = u + (B - const_B) ** 2
+                v = v + (B - A) ** 2
+            u, v = u.sum(), v.sum()
+            
+            print((A-B).sum())
+            
+            Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
+            Expectation_Loss.backward()
+            optimizer.step()
 
             loss_dict = {}
-            log_prefix = 'Ps-Adapter-train'
+            log_prefix = 'Ps-Adapter-multiGPUs-train'
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
 
-            print("[%5d|%5d] %.2f(s) Exception Loss: %.6f " % (epoch, time.time() - epoch_start_time, opt.epochs-start_epoch+1, Expectation))
+            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Exception Loss: %.6f " % \
+             (epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss))
 
-            Expectation.backward()
-            optimizer.step()
+
 
             if (current_iter + 1) % opt.print_fq == 0:
                 logger.info(loss_dict)
