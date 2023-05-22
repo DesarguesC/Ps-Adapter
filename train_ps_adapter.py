@@ -16,9 +16,10 @@ from ldm.data.dataset_ps_keypose import PsKeyposeDataset
 from basicsr.utils.dist_util import get_dist_info, master_only, init_dist
 from ldm.modules.encoders.adapter import Adapter
 from ldm.util import load_model_from_config
-
+from ldm.data.dataset_ps_keypose import deal, Inter
 from ldm.inference_base import (train_inference, diffusion_inference, get_adapters, get_base_argument_parser,
                                 get_sd_models)
+import cv2
 from ldm.modules.extra_condition import api
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
 
@@ -267,6 +268,19 @@ def rates(ratios: dict):
     alphas = ratios['alphas']
     return (alphas / (1. - alphas)).sum(dim=0, keepdim=False)
 
+def resize_tensor_image(A, B, inter):
+    # resize A as B
+    h, w, _ = B.shape
+    A_ = (A.cpu().numpy()).astype(np.float32)
+    A = cv2.resize(A_, (h,w), interpolation=Inter[inter])
+    A = torch.from_numpy(A)
+    A, B = deal(A), deal(B)
+    assert A.shape == B.shape, f'Resize Failed: A.shape = {A.shape}, B.shape = {B.shape}'
+    return A.cpu(), B.cpu()
+
+
+
+
 
 def main():
     opt = parsr_args()
@@ -438,7 +452,7 @@ def main():
             log_prefix = 'Ps-Adapter-multiGPUs-train'
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
-            loss_dict.update({f'{log_prefix}/loss_Expectation': Expectation})
+            loss_dict.update({f'{log_prefix}/Expectation_Loss': Expectation_Loss})
 
             print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Exception Loss: %.6f " % \
              (epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss))
