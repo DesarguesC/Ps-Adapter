@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from basicsr.utils import (get_env_info, get_root_logger, get_time_str,
                            scandir, tensor2img)
-
+from tqdm import tqdm
 from basicsr.utils.options import copy_opt_file, dict2str
 from omegaconf import OmegaConf
 import time
@@ -129,7 +129,7 @@ def parsr_args():
     parser.add_argument(
         "--name",
         type=str,
-        default="train_depth",
+        default="PS_Adapter",
         help="experiment name",
     )
     parser.add_argument(
@@ -258,6 +258,13 @@ def parsr_args():
         default=8,
         help='download sample factor'
     )
+    
+    parser.add_argument(
+        "--opt_V",
+        type=str2bool,
+        default=True,
+        help='whether to choose to optimize V variable'
+    )
 
 
     opt = parser.parse_args()
@@ -307,6 +314,7 @@ def main():
 
     print('reading datasets...')
     train_dataset = PsKeyposeDataset(opt.caption_path, opt.keypose_folder, interpolation='inter_lanczos', resize=opt.resize, factor=opt.factor)
+    print('Training Length: ', len(train_dataset))
     opt.H, opt.W = train_dataset.item_shape
     print('base shape: ', (opt.H, opt.W))
     max_resolution = opt.W * opt.H
@@ -320,6 +328,7 @@ def main():
         shuffle= (train_sampler is None),
         num_workers=opt.num_workers,
         pin_memory=True,
+        drop_last=True,
         sampler=train_sampler)
 
     # Stable-Diffusion Model
@@ -400,12 +409,16 @@ def main():
             current_iter += 1
             epoch_start_time = time.time()
             ss += 1
+            
+            Exp_thiory = torch.tensor(0.)
+            
+            
             with torch.no_grad():
                 # CLIP
                 c = model.module.get_learned_conditioning(data['prompt'])
+                const_A = get_cond_openpose(opt, tensor2img(model_reflect('primary')), cond_inp_type='openpose')    # for verification
+                const_B = get_cond_openpose(opt, tensor2img(model_reflect('secondary')), cond_inp_type='openpose')
                 
-                B_0 = tensor2img(model_reflect('secondary'))
-                const_B = get_cond_openpose(opt, B_0, cond_inp_type='openpose')
                 # already went through 'img2tensor'
                 features_A = primary_adapter.module(data['primary'].to(device))
                 samples_A, _ = train_inference(opt, c, model.module, sampler, features_A, cond_model=cond_model, loss_mode=True)
@@ -419,6 +432,7 @@ def main():
             assert len(samples_B) == len(samples_A), 'qwq'           
 
             const_B = const_B.to(torch.float32)
+            const_A = const_A.to(torch.float32)
             
             print('Training Base Info: ')
             print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
@@ -427,25 +441,34 @@ def main():
             u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
                torch.zeros(sh, dtype=torch.float32, requires_grad=True)
             
+            delta_L = torch.zeros(sh, dtype=torch.float32, requires_grad=False)    # for verification
+            
             for i in range(len(samples_A)):
                 
                 B = torch.from_numpy(np.float32(samples_B[i])).squeeze()
                 A = torch.from_numpy(np.float32(samples_A[i])).squeeze()
                 const_B = const_B.squeeze()
+                const_A = const_A.squeeze()
                 assert len(A.shape)==3
                 assert A.shape == B.shape
                 
-                A, B, const_B = deal(A), deal(B), deal(const_B)
+                A, B, const_B, const_A = deal(A), deal(B), deal(const_B), deal(const_A)
                 
                 const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
+                const_A, A = resize_tensor_image(const_A, A, inter=opt.inter)
+                
                 u = u + (B - const_B) ** 2
                 v = v + (B - A) ** 2
+                
+                delta_L = delta_L + (const_B - const_A) ** 2
+                
             u, v = u.sum(), v.sum()
+            delta_L = delta_L.sum()
             
-            print((A-B).sum())
+            print((A - B).sum())   # we found that: A - B as well as V stays at 0, but it can affect total loss of expectation
             
             # Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
-            Expectation_Loss = 2 * rates(ratios) * u.sum()       # we found that B-A stays tensor(0.) so we remove it
+            Expectation_Loss = 2 * rates(ratios) * u.sum() + (v.sum() if opt.opt_V else torch.tensor(0.))     # we found that B-A stays tensor(0.) so we remove it
             
             Expectation_Loss.backward()
             optimizer.step()
@@ -456,8 +479,7 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/Expectation_Loss': Expectation_Loss})
 
-            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s),  U: %.6f, V: %.6f, Expectation Loss: %.6f " % \
-             (epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss))
+            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s), U: %.6f, V: %.6f, Expectation Loss: %.6f, V-opt: %s; Residual Verification(E -> delta_L): %.6f "%(epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss, 'True' if opt.opt_V else 'False', Expectation_Loss - delta_L) )
 
 
 
