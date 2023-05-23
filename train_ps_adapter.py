@@ -135,7 +135,7 @@ def parsr_args():
     parser.add_argument(
         "--print_fq",
         type=int,
-        default=100,
+        default=2,
         help="path to config which constructs model",
     )
     parser.add_argument(
@@ -492,7 +492,7 @@ def main():
                     save_filename = f'model_ad_{current_iter + 1}.pth'
                     save_path = os.path.join(experiments_root, 'models', save_filename)
                     save_dict = {}
-                    state_dict = secondary_adapter.state_dict()
+                    state_dict = secondary_adapter.module.state_dict()
                     for key, param in state_dict.items():
                         if key.startswith('module.'):  # remove unnecessary 'module.'
                             key = key[7:]
