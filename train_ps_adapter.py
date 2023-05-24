@@ -397,7 +397,7 @@ def main():
     logger.info(f'Start training from epoch: {start_epoch}, iter: {current_iter}')
     model_reflect = lambda x: model.module.get_first_stage_encoding(    # ???
         model.module.encode_first_stage((data[x] * 2 - 1).to(device))).type(torch.float32)
-    cond_model = OpenposeInference().to(device)
+    cond_model = OpenposeInference(train_mode=True).to(device)
     
     for epoch in range(start_epoch, opt.epochs):
         

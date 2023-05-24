@@ -14,7 +14,7 @@ Inter = {
     'inter_cubic': cv2.INTER_CUBIC,
     'inter_nearest': cv2.INTER_NEAREST,
     'inter_linear': cv2.INTER_LINEAR,
-    'inter_lanczos': cv2.INTER_LANCZOS4
+    'inter_lanczos4': cv2.INTER_LANCZOS4
 }
 
 def deal(Input):

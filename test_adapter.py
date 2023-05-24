@@ -10,6 +10,9 @@ from ldm.inference_base import (diffusion_inference, get_adapters, get_base_argu
 from ldm.modules.extra_condition import api
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_model)
 
+
+from ldm.util import Inter
+
 torch.set_grad_enabled(False)
 
 
@@ -23,6 +26,13 @@ def main():
         choices=supported_cond,
         help='which condition modality you want to test',
     )
+    parser.add_argument(
+        "--inter",
+        type=str,
+        default='inter_lanczos4',
+        choices=['inter_cubic', 'inter_linear', 'inter_nearest', 'inter_lanczos4'],
+        help='resize shape'
+    )
     opt = parser.parse_args()
     which_cond = opt.which_cond
     if opt.outdir is None:
@@ -32,7 +42,6 @@ def main():
         print(f"you don't specify the resize_shot_edge, so the maximum resolution is set to {opt.max_resolution}")
     opt.device = torch.device("cuda") if torch.cuda.is_available() else torch.device\
         ("cpu")
-
     # support two test mode: single image test, and batch test (through a txt file)
     if opt.prompt.endswith('.txt'):
         assert opt.prompt.endswith('.txt')
@@ -79,14 +88,17 @@ def main():
             seed_everything(opt.seed)
             for v_idx in range(opt.n_samples):
                 # seed_everything(opt.seed+v_idx+test_idx)
+                # print(Inter[opt.inter])
                 cond = process_cond_module(opt, cond_path, opt.cond_inp_type, cond_model)
                 # cond: torch.tensor
 
                 base_count = len(os.listdir(opt.outdir)) // 2
                 cv2.imwrite(os.path.join(opt.outdir, f'{base_count:05}_{which_cond}.png'), tensor2img(cond))
                 # write: keypose.png
-
+                
+                # print('cond_shape: ', cond.shape)
                 adapter_features, append_to_context = get_adapter_feature(cond, adapter)
+                # print('feature_shape: ', adapter_features[0].shape)
                 opt.prompt = prompt
                 result = diffusion_inference(opt, sd_model, sampler, adapter_features, append_to_context)
                 cv2.imwrite(os.path.join(opt.outdir, f'{base_count:05}_result.png'), tensor2img(result))
