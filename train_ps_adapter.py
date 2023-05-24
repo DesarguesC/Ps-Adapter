@@ -456,6 +456,8 @@ def main():
                 
                 const_B, B = resize_tensor_image(const_B, B, inter=opt.inter)
                 const_A, A = resize_tensor_image(const_A, A, inter=opt.inter)
+                print('||B||: ', (B**2).sum())
+                # B \approx 0 -> ?
                 
                 u = u + (B - const_B) ** 2
                 v = v + (B - A) ** 2
@@ -478,12 +480,14 @@ def main():
             loss_dict.update({f'{log_prefix}/loss_u': u})
             loss_dict.update({f'{log_prefix}/loss_v': v})
             loss_dict.update({f'{log_prefix}/Expectation_Loss': Expectation_Loss})
+            
+            tmp_rank, _ = get_dist_info()
+            
+            print("[Machine RANK=>%2d] [%4d|%4d] IN %2d-th DATA, TIME: %.2f(s), U: %.6f, V: %.6f, Expectation Loss: %.6f, V-opt: %s; Residual Verification(E -> delta_L): %.6f "%(tmp_rank, epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss, 'True' if opt.opt_V else 'False', Expectation_Loss - delta_L) )
 
-            print("[%4d|%4d] IN %2d-th DATA, TIME: %.2f(s), U: %.6f, V: %.6f, Expectation Loss: %.6f, V-opt: %s; Residual Verification(E -> delta_L): %.6f "%(epoch+1, opt.epochs-start_epoch, ss, time.time() - epoch_start_time, u, v, Expectation_Loss, 'True' if opt.opt_V else 'False', Expectation_Loss - delta_L) )
 
-
-
-            if (current_iter + 1) % opt.print_fq == 0:
+            if True : 
+            # if (current_iter + 1) % opt.print_fq == 0:
                 logger.info(loss_dict)
 
                 # save checkpoint
