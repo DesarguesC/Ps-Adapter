@@ -20,7 +20,8 @@ from ldm.inference_base import (train_inference, diffusion_inference, get_adapte
 
 from ldm.modules.extra_condition.api import (ExtraCondition, get_adapter_feature, get_cond_openpose)
 import cv2
-from ldm.data.dataset_ps_keypose import deal, Inter
+from ldm.data.dataset_ps_keypose import deal
+from ldm.util import Inter
 
 @master_only
 def mkdir_and_rename(path):
