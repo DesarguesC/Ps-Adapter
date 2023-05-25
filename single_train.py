@@ -366,7 +366,7 @@ def main():
     
     for epoch in range(start_epoch, opt.epochs):
         # train
-        cond_model = OpenposeInference().to(device)
+        cond_model = OpenposeInference(train_mode=True).to(device)
         ss = 0
         for _, data in enumerate(train_dataloader):
             epoch_start_time = time.time()
@@ -389,15 +389,17 @@ def main():
             
             primary_adapter['model'].zero_grad()
             features_B = secondary_adapter(data['secondary'].to(device))
-            print(f'delta feature: {[(features_A[i]-features_B[i]).sum() for i in range(len(features_A))]}')
+            # print(f'delta feature: {[(features_A[i]-features_B[i]).sum() for i in range(len(features_A))]}')
+            
+            print('feature shape: ', features_B[0].shape)
             samples_B, ratios = train_inference(opt, c, model, sampler, features_B, cond_model=cond_model, loss_mode=True)
             
             assert len(samples_B) == len(samples_A), 'qwq'           
 
             const_B = const_B.to(torch.float32)
             
-            print('Training Base Info: ')
-            print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
+            # print('Training Base Info: ')
+            # print(f'latent shape: {samples_B[0].shape}, const shape: {const_B.shape}')
             
             sh = torch.from_numpy(samples_A[0].astype(np.float32)).shape
             u, v = torch.zeros(sh, dtype=torch.float32, requires_grad=True), \
@@ -418,7 +420,7 @@ def main():
                 v = v + (B - A) ** 2
             u, v = u.sum(), v.sum()
             
-            print((A-B).sum())
+            # print((A-B).sum())
             
             Expectation_Loss = 2 * rates(ratios) * u.sum() + v.sum()
             Expectation_Loss.backward()

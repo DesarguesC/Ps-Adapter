@@ -250,7 +250,7 @@ def get_adapters(opt, cond_type: ExtraCondition):
     return adapter
 
 
-def diffusion_inference(opt, model, sampler, adapter_features, append_to_context=None):
+def diffusion_inference(opt, model, sampler, adapter_features, append_to_context=None, **kwargs):
     # get text embedding
     c = model.get_learned_conditioning([opt.prompt])
     if opt.scale != 1.0:
@@ -285,12 +285,7 @@ def diffusion_inference(opt, model, sampler, adapter_features, append_to_context
 
 
 def train_inference(opt, c, model, sampler, adapter_features, cond_model=None, loss_mode=True, append_to_context=None):
-    # # openpose
-    # from ldm.modules.extra_condition.openpose.api import OpenposeInference
-    # embed_model = OpenposeInference().to(opt.device)
-
     # get text embedding
-    
     if opt.scale != 1.0:
         uc = model.get_learned_conditioning([DEFAULT_NEGATIVE_PROMPT])
     else:
